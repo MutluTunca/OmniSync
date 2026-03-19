@@ -47,14 +47,22 @@ jobs:
         run: echo "OWNER_LC=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
       - name: Login to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-      - name: Build backend image
-        run: docker build -t ghcr.io/${{ env.OWNER_LC }}/omnisync-backend:${{ github.sha }} backend
-      - name: Build frontend image
-        run: docker build -t ghcr.io/${{ env.OWNER_LC }}/omnisync-frontend:${{ github.sha }} frontend
-      - name: Push images
-        run: |
-          docker push ghcr.io/${{ env.OWNER_LC }}/omnisync-backend:${{ github.sha }}
-          docker push ghcr.io/${{ env.OWNER_LC }}/omnisync-frontend:${{ github.sha }}
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ghcr.io/${{ env.OWNER_LC }}/omnisync-backend:${{ github.sha }}
+            ghcr.io/${{ env.OWNER_LC }}/omnisync-backend:latest
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ghcr.io/${{ env.OWNER_LC }}/omnisync-frontend:${{ github.sha }}
+            ghcr.io/${{ env.OWNER_LC }}/omnisync-frontend:latest
 
   staging_deploy:
     runs-on: ubuntu-latest
@@ -78,11 +86,8 @@ jobs:
           
           ssh ubuntu@54.198.150.132 << EOF
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            docker pull $BACKEND_IMAGE
-            docker pull $FRONTEND_IMAGE
-            docker tag $BACKEND_IMAGE omnisync-backend:latest
-            docker tag $FRONTEND_IMAGE omnisync-frontend:latest
             cd /srv/omnisync
+            docker compose -f docker-compose.staging.yml pull
             docker compose -f docker-compose.staging.yml up -d
           EOF
 
