@@ -218,6 +218,7 @@ async def oauth_callback(
         raise HTTPException(status_code=400, detail="Meta token exchange failed")
 
     pages = await client.fetch_pages_with_instagram(access_token)
+    print(f"DEBUG: Meta pages response: {pages}")
     page_items = pages.get("data", [])
 
     company = db.query(Company).first()

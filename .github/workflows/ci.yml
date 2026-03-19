@@ -86,39 +86,5 @@ jobs:
             docker compose -f docker-compose.staging.yml up -d
           EOF
 
-  production_deploy:
-    runs-on: ubuntu-latest
-    needs: [staging_deploy]
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-      - name: Lowercase repo owner
-        run: echo "OWNER_LC=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-      - name: Manual Approval
-        uses: peter-evans/slash-command-dispatch@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          reaction-token: ${{ secrets.GITHUB_TOKEN }}
-          command: "/approve"
-          permission: write
-      - name: Setup SSH and deploy to production
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H 54.198.150.132 >> ~/.ssh/known_hosts
-          BACKEND_IMAGE=ghcr.io/${{ env.OWNER_LC }}/omnisync-backend:${{ github.sha }}
-          FRONTEND_IMAGE=ghcr.io/${{ env.OWNER_LC }}/omnisync-frontend:${{ github.sha }}
-          
-          ssh ubuntu@54.198.150.132 "mkdir -p /srv/omnisync"
-          scp infra/docker/docker-compose.staging.yml ubuntu@54.198.150.132:/srv/omnisync/docker-compose.prod.yml
-          
-          ssh ubuntu@54.198.150.132 << EOF
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            docker pull $BACKEND_IMAGE
-            docker pull $FRONTEND_IMAGE
-            docker tag $BACKEND_IMAGE omnisync-backend:latest
-            docker tag $FRONTEND_IMAGE omnisync-frontend:latest
-            cd /srv/omnisync
-            docker compose -f docker-compose.prod.yml up -d
-          EOF
+  # Production deploy is currently disabled to avoid CI errors during push events.
+  # We will re-enable it with a proper manual trigger later.
