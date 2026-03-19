@@ -1,0 +1,42 @@
+- Önce Docker desktop u çalıştır.
+
+- linke girip token generate ediliyor sonra yeni tokeni alıp aşağıdaki koda uyguluyorsun
+https://developers.facebook.com/tools/explorer/
+
+
+TOKEN AKTİF HALE GETİRMEK İÇİN
+
+$body = @{
+  ig_user_id = "17841480487139811"
+  username = "omnisync.life"
+  page_id = "1094388863750852"
+  page_access_token = "EAA818QAVSM0BQxl4q7SOLoAWXxRimaagJqyDZCrM3gVeWTZBIMkZBZAGXcjhjCxGeD5M4ZB2L2YBbYg3TZBW1IcosPfnjOAaztU31otr3s4RMT5qrFr7cw3QVCCxQxk6Pww5t7OOa9lQa8CLSg4KMo9YxS3Mmw1dlg1rGmndI7gZBnVZBJuNuIKVdvlyy2R3TUl3F30ekl0EWVZCZB7vjZAUEtoMXkE925g7WiWi4nbq4Y9vPVahVRcs8iJZBFHDqR8JlZBgFR7RqH62blWyOm54qkgZDZD"
+  is_active = $true
+} | ConvertTo-Json -Compress
+
+Invoke-RestMethod -Method POST `
+  -Uri "http://localhost:8000/api/v1/instagram/manual-connect" `
+  -ContentType "application/json" `
+  -Body $body
+
+---------------------------
+
+http://localhost:3000/   ---> DASHBOARD
+
+
+
+Kullanıcı Paneli (Frontend): http://54.198.150.132:3000
+API Sağlık Durumu (Backend): http://54.198.150.132:8000/api/v1/instagram/token-health (Bağlı hesapların durumunu buradan JSON olarak görebilirsiniz).
+API Dokümantasyonu (Swagger): http://54.198.150.132:8000/docs
+
+
+ssh -i "omnisync-key.pem" ubuntu@54.198.150.132    ---> AWS sunucu paneli terminalden
+nano /srv/omnisync/.env   ---> sunucudaki .env dosyası için
+cd /srv/omnisync && docker compose -f docker-compose.staging.yml up -d      ---> tekrar aktif olması için
+
+
+ADMIN_EMAIL=owner@omnisync.life
+ADMIN_PASSWORD=Sifrem123!
+
+Github push yaptıktan sonra
+docker compose -f docker-compose.staging.yml up -d   ---> sunucu panelinden tekrar çalıştırılıyor

@@ -1,0 +1,90 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: omnisync_postgres
+    restart: unless-stopped
+    env_file:
+      - ../../.env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-omnisync}
+      POSTGRES_USER: ${POSTGRES_USER:-omnisync}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-omnisync}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: omnisync_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  backend:
+    build:
+      context: ../../backend
+    container_name: omnisync_backend
+    restart: unless-stopped
+    env_file:
+      - ../../.env
+    depends_on:
+      - postgres
+      - redis
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../../backend:/app
+
+  worker:
+    build:
+      context: ../../backend
+    container_name: omnisync_worker
+    restart: unless-stopped
+    env_file:
+      - ../../.env
+    depends_on:
+      - backend
+      - redis
+      - postgres
+    command: celery -A app.workers.celery_app.celery_app worker -Q webhooks,ai,outbound --loglevel=info
+    volumes:
+      - ../../backend:/app
+
+  beat:
+    build:
+      context: ../../backend
+    container_name: omnisync_beat
+    restart: unless-stopped
+    env_file:
+      - ../../.env
+    depends_on:
+      - backend
+      - redis
+      - postgres
+    command: celery -A app.workers.celery_app.celery_app beat --loglevel=info
+    volumes:
+      - ../../backend:/app
+
+  frontend:
+    build:
+      context: ../../frontend
+    container_name: omnisync_frontend
+    restart: unless-stopped
+    env_file:
+      - ../../.env
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+      NEXT_PUBLIC_API_ACCESS_TOKEN: ${NEXT_PUBLIC_API_ACCESS_TOKEN}
+      INTERNAL_API_BASE_URL: http://backend:8000
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../../frontend:/app
+      - /app/node_modules
+
+volumes:
+  pg_data:

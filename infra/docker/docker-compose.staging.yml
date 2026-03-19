@@ -1,0 +1,69 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: omnisync_postgres_staging
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pg_data_staging:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: omnisync_redis_staging
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+
+  backend:
+    image: omnisync-backend:latest
+    container_name: omnisync_backend_staging
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    ports:
+      - "8000:8000"
+
+  worker:
+    image: omnisync-backend:latest
+    container_name: omnisync_worker_staging
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - backend
+      - redis
+      - postgres
+    command: celery -A app.workers.celery_app.celery_app worker -Q webhooks,ai,outbound --loglevel=info
+
+  beat:
+    image: omnisync-backend:latest
+    container_name: omnisync_beat_staging
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - backend
+      - redis
+      - postgres
+    command: celery -A app.workers.celery_app.celery_app beat --loglevel=info
+
+  frontend:
+    image: omnisync-frontend:latest
+    container_name: omnisync_frontend_staging
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+
+volumes:
+  pg_data_staging:
