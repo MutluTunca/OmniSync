@@ -82,3 +82,15 @@ class MetaGraphClient:
         )
         response.raise_for_status()
         return response.json()
+
+    def fetch_media_details(self, media_id: str, access_token: str) -> dict:
+        response = httpx.get(
+            f"{self.base_url}/{media_id}",
+            params={
+                "fields": "id,caption,media_type,media_url,thumbnail_url,timestamp",
+                "access_token": access_token,
+            },
+            timeout=20,
+        )
+        response.raise_for_status()
+        return response.json()
