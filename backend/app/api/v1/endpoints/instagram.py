@@ -19,11 +19,6 @@ from app.workers.celery_app import celery_app
 
 router = APIRouter()
 
-# Role checkers
-admin_plus = RoleChecker("owner", "admin")
-manager_plus = RoleChecker("owner", "admin", "manager")
-all_roles = RoleChecker("owner", "admin", "manager", "operator", "agent")
-
 
 class ManualConnectRequest(BaseModel):
     ig_user_id: str
@@ -64,7 +59,7 @@ def _effective_company_token(company: Company, accounts: list[InstagramAccount])
 
 @router.get("/accounts")
 def list_accounts(
-    current_user: User = Depends(all_roles),
+    current_user: User = Depends(RoleChecker("owner", "admin", "manager", "operator", "agent")),
     db: Session = Depends(get_db),
 ) -> dict:
     items = db.query(InstagramAccount).filter(InstagramAccount.company_id == current_user.company_id).all()
@@ -90,7 +85,7 @@ def list_accounts(
 
 @router.get("/token-health")
 def token_health(
-    current_user: User = Depends(all_roles),
+    current_user: User = Depends(RoleChecker("owner", "admin", "manager", "operator", "agent")),
     db: Session = Depends(get_db),
 ) -> dict:
     company = db.get(Company, current_user.company_id)
@@ -145,7 +140,7 @@ def poll_now() -> dict[str, str]:
 @router.post("/manual-connect")
 def manual_connect(
     payload: ManualConnectRequest,
-    current_user: User = Depends(admin_plus),
+    current_user: User = Depends(RoleChecker("owner", "admin")),
     db: Session = Depends(get_db)
 ) -> dict:
     company = db.get(Company, current_user.company_id)
@@ -203,7 +198,7 @@ def manual_connect(
 
 
 @router.get("/oauth/start")
-def oauth_start(current_user: User = Depends(admin_plus)) -> dict[str, str]:
+def oauth_start(current_user: User = Depends(RoleChecker("owner", "admin"))) -> dict[str, str]:
     # Encode company_id into state to maintain multi-tenancy during callback
     state = f"{uuid4()}:{current_user.company_id}"
     params = {

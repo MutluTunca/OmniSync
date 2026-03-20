@@ -13,8 +13,8 @@ router = APIRouter()
 
 @router.get("/overview")
 def get_overview(
+    current_user: User = Depends(RoleChecker("owner", "admin", "manager", "operator", "agent")),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """
     General metrics for the dashboard home/analytics.

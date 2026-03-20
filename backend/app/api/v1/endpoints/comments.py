@@ -16,11 +16,6 @@ from app.workers.celery_app import celery_app
 
 router = APIRouter()
 
-# Role checkers for different access levels
-manager_plus = RoleChecker("owner", "admin", "manager")
-operator_plus = RoleChecker("owner", "admin", "manager", "operator")
-all_roles = RoleChecker("owner", "admin", "manager", "operator", "agent")
-
 
 class GenerateReplyRequest(BaseModel):
     force_regenerate: bool = False
@@ -36,7 +31,7 @@ def list_comments(
     status: str | None = Query(default=None),
     intent: str | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=200),
-    current_user: User = Depends(all_roles),
+    current_user: User = Depends(RoleChecker("owner", "admin", "manager", "operator", "agent")),
     db: Session = Depends(get_db),
 ) -> dict:
     query = (
@@ -92,7 +87,7 @@ def list_comments(
 def trigger_generate_reply(
     comment_id: str,
     payload: GenerateReplyRequest,
-    current_user: User = Depends(operator_plus),
+    current_user: User = Depends(RoleChecker("owner", "admin", "manager", "operator")),
     db: Session = Depends(get_db),
 ) -> dict:
     try:
@@ -129,7 +124,7 @@ def trigger_generate_reply(
 def approve_reply(
     comment_id: str,
     payload: ApproveReplyRequest,
-    current_user: User = Depends(operator_plus),
+    current_user: User = Depends(RoleChecker("owner", "admin", "manager", "operator")),
     db: Session = Depends(get_db),
 ) -> dict:
     try:

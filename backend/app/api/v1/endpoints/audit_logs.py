@@ -13,11 +13,10 @@ router = APIRouter()
 
 @router.get("/")
 def list_logs(
+    limit: int = Query(default=50, ge=1, le=100),
+    current_user: User = Depends(RoleChecker("owner", "admin", "manager")),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    limit: int = Query(default=50, le=100),
-    offset: int = 0,
-):
+) -> dict:
     """
     Get audit logs for the current company.
     """

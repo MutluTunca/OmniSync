@@ -5,8 +5,10 @@ from redis import Redis
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.api.v1.dependencies import RoleChecker
 from app.core.config import settings
 from app.db.session import get_db
+from app.models.user import User
 from app.models.webhook_event import WebhookEvent
 from app.workers.celery_app import celery_app
 
@@ -46,7 +48,9 @@ def _queue_backlog() -> dict[str, int | None]:
 
 
 @router.get("/celery")
-def celery_health() -> dict:
+def celery_health(
+    current_user: User = Depends(RoleChecker("owner", "admin", "manager")),
+) -> dict:
     inspect = celery_app.control.inspect(timeout=1.5)
 
     try:
@@ -92,7 +96,10 @@ def celery_health() -> dict:
 
 
 @router.get("/webhooks")
-def webhook_health(db: Session = Depends(get_db)) -> dict:
+def webhook_health(
+    current_user: User = Depends(RoleChecker("owner", "admin", "manager")),
+    db: Session = Depends(get_db),
+) -> dict:
     now = datetime.now(timezone.utc)
 
     total = db.query(func.count(WebhookEvent.id)).scalar() or 0
@@ -132,7 +139,9 @@ def webhook_health(db: Session = Depends(get_db)) -> dict:
 
 
 @router.post("/alerts-now")
-def alerts_now() -> dict[str, str]:
+def alerts_now(
+    current_user: User = Depends(RoleChecker("owner", "admin", "manager")),
+) -> dict[str, str]:
     """
     Manually trigger the operational alerts check task.
     """
