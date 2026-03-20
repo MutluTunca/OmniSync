@@ -39,7 +39,7 @@ type ApiResponse = {
 type QuickView = "all" | "action" | "today" | "replied" | "sensitive" | "pricing" | "critical";
 
 const API_BASE = "";
-
+const TOKEN_STORAGE_KEY = "omnisync_access_token";
 
 const STATUS_OPTIONS = ["all", "new", "pending_approval", "replied", "failed", "skipped"];
 
@@ -88,6 +88,12 @@ export default function CommentsPage() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState<string>("");
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem(TOKEN_STORAGE_KEY);
+    setToken(saved);
+  }, []);
 
   const [quickView, setQuickView] = useState<QuickView>("action");
   const [searchText, setSearchText] = useState("");
@@ -155,9 +161,13 @@ export default function CommentsPage() {
   }, [filteredItems, currentPage, pageSize]);
 
   async function loadComments() {
+    if (!token) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/comments?limit=200`, { cache: "no-store" });
+      const res = await fetch(`${API_BASE}/api/v1/comments?limit=200`, { 
+        cache: "no-store",
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (!res.ok) throw new Error("Yorumlar alinamadi");
       const data: ApiResponse = await res.json();
       setItems(data.items ?? []);
@@ -170,9 +180,13 @@ export default function CommentsPage() {
   }
 
   async function triggerPollNow() {
+    if (!token) return;
     setBusyId("poll");
     try {
-      const res = await fetch(`${API_BASE}/api/v1/instagram/poll-now`, { method: "POST" });
+      const res = await fetch(`${API_BASE}/api/v1/instagram/poll-now`, { 
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (!res.ok) throw new Error();
       setMessage("Yorum kontrolu tetiklendi. Birkac saniye sonra liste yenilenir.");
       setTimeout(() => {
@@ -186,11 +200,15 @@ export default function CommentsPage() {
   }
 
   async function generateReply(commentId: string) {
+    if (!token) return;
     setBusyId(commentId);
     try {
       const res = await fetch(`${API_BASE}/api/v1/comments/${commentId}/generate-reply`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify({ force_regenerate: true })
       });
       if (!res.ok) throw new Error();
@@ -206,6 +224,7 @@ export default function CommentsPage() {
   }
 
   async function sendReplyNow(item: CommentItem) {
+    if (!token) return;
     if (!item.reply?.final_text) {
       setMessage("Gonderilecek yanit metni bulunamadi.");
       return;
@@ -215,7 +234,10 @@ export default function CommentsPage() {
     try {
       const res = await fetch(`${API_BASE}/api/v1/comments/${item.id}/approve-reply`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify({ final_text: item.reply.final_text, send_now: true })
       });
       if (!res.ok) throw new Error();
@@ -241,8 +263,10 @@ export default function CommentsPage() {
   }
 
   useEffect(() => {
-    void loadComments();
-  }, []);
+    if (token) {
+      void loadComments();
+    }
+  }, [token]);
 
   return (
     <main className="container">

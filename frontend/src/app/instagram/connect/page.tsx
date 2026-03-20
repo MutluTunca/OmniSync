@@ -18,7 +18,11 @@ export default function InstagramConnectPage() {
     setLoading(true);
     setMessage("");
     try {
-      const res = await fetch(`${API_BASE}/api/v1/instagram/oauth/start`, { cache: "no-store" });
+      const token = window.localStorage.getItem("omnisync_access_token");
+      const res = await fetch(`${API_BASE}/api/v1/instagram/oauth/start`, { 
+        cache: "no-store",
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
       if (!res.ok) throw new Error("oauth_start_failed");
       const data = (await res.json()) as { auth_url?: string };
       if (!data.auth_url) throw new Error("missing_auth_url");
