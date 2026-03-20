@@ -55,7 +55,7 @@ services:
     command: celery -A app.workers.celery_app.celery_app beat --loglevel=info
 
   frontend:
-    image: ghcr.io/mutlutunca/omnisync-frontend:7384119
+    image: ghcr.io/mutlutunca/omnisync-frontend:latest
     container_name: omnisync_frontend_staging
     restart: unless-stopped
     env_file:
