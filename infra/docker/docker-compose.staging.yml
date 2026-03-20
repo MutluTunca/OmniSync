@@ -18,7 +18,7 @@ services:
       - "127.0.0.1:6379:6379"
 
   backend:
-    image: ghcr.io/mutlutunca/omnisync-backend:69ce8faa7145f0a74b5bab7aadffd83cecb2177f
+    image: ghcr.io/mutlutunca/omnisync-backend:latest
     container_name: omnisync_backend_staging
     restart: unless-stopped
     env_file:
@@ -31,7 +31,7 @@ services:
       - "8000:8000"
 
   worker:
-    image: ghcr.io/mutlutunca/omnisync-backend:69ce8faa7145f0a74b5bab7aadffd83cecb2177f
+    image: ghcr.io/mutlutunca/omnisync-backend:latest
     container_name: omnisync_worker_staging
     restart: unless-stopped
     env_file:
@@ -43,7 +43,7 @@ services:
     command: celery -A app.workers.celery_app.celery_app worker -Q webhooks,ai,outbound --loglevel=info
 
   beat:
-    image: ghcr.io/mutlutunca/omnisync-backend:69ce8faa7145f0a74b5bab7aadffd83cecb2177f
+    image: ghcr.io/mutlutunca/omnisync-backend:latest
     container_name: omnisync_beat_staging
     restart: unless-stopped
     env_file:
@@ -55,7 +55,7 @@ services:
     command: celery -A app.workers.celery_app.celery_app beat --loglevel=info
 
   frontend:
-    image: ghcr.io/mutlutunca/omnisync-frontend:69ce8faa7145f0a74b5bab7aadffd83cecb2177f
+    image: ghcr.io/mutlutunca/omnisync-frontend:latest
     container_name: omnisync_frontend_staging
     restart: unless-stopped
     env_file:
