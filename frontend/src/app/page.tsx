@@ -186,9 +186,16 @@ export default async function HomePage() {
         </article>
         <article className="card">
           <h2>Kullanıcılar</h2>
-          <p>Admin isen kullanıcıları listele ve yeni kullanıcı ekle.</p>
+          <p>Kullanıcıları listele ve yeni kullanıcı ekle.</p>
           <Link className="link" href="/users">
             Kullanıcı yönetimi
+          </Link>
+        </article>
+        <article className="card">
+          <h2>Sistem Kayıtları</h2>
+          <p>Yorum gonderimleri, hatalar ve sistem olaylari.</p>
+          <Link className="link" href="/logs">
+            Loglari incele
           </Link>
         </article>
       </div>

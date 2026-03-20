@@ -13,7 +13,9 @@ from app.services.reply_service import generate_reply
 from app.workers.celery_app import celery_app
 from app.core.config import settings
 from app.integrations.meta_client import MetaGraphClient
-from app.models.company import Company  # noqa: F401
+from app.models.company import Company
+from app.models.audit_log import AuditLog
+from sqlalchemy import func
 import httpx
 
 
@@ -446,10 +448,35 @@ def generate_comment_reply(comment_id: str) -> dict[str, str]:
             return {"status": "missing"}
         if comment.intent == "spam_irrelevant":
             comment.status = "skipped"
-            comment.updated_at = datetime.now(timezone.utc)
             db.add(comment)
             db.commit()
+            
+            # Log spam skip
+            db.add(AuditLog(
+                company_id=comment.company_id,
+                event_type="comment_skipped",
+                description=f"Comment {comment_id} skipped as spam/irrelevant.",
+                payload={"intent": comment.intent}
+            ))
+            db.commit()
             return {"status": "skipped_spam"}
+
+        # Enforce subscription limits
+        company = db.get(Company, comment.company_id)
+        if company:
+            today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+            reply_count = (
+                db.query(func.count(Reply.id))
+                .filter(Reply.company_id == company.id)
+                .filter(Reply.created_at >= today_start)
+                .scalar()
+            ) or 0
+            if reply_count >= company.daily_reply_limit:
+                comment.status = "skipped"
+                comment.updated_at = datetime.now(timezone.utc)
+                db.add(comment)
+                db.commit()
+                return {"status": "limit_reached", "company": company.id, "limit": company.daily_reply_limit}
 
         recent_rows = (
             db.query(Reply.final_text)
@@ -585,8 +612,24 @@ def send_reply(reply_id: str) -> dict[str, str]:
             reply.failure_reason = str(exc)
             comment.status = "failed"
             comment.updated_at = datetime.now(timezone.utc)
+            # Log failure
+            db.add(AuditLog(
+                company_id=reply.company_id,
+                event_type="reply_failed",
+                description=f"Failed to send reply to comment {reply.comment_id}: {str(exc)}",
+                payload={"reply_id": str(reply.id), "error": str(exc)}
+            ))
 
         reply.updated_at = datetime.now(timezone.utc)
+        if reply.status == "sent":
+            # Log success
+            db.add(AuditLog(
+                company_id=reply.company_id,
+                event_type="reply_sent",
+                description=f"Reply sent successfully to comment {reply.comment_id}.",
+                payload={"reply_id": str(reply.id)}
+            ))
+            
         db.add(reply)
         db.add(comment)
         db.commit()

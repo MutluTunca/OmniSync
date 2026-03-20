@@ -87,8 +87,12 @@ export default function AccountsPage() {
                   <td>{x.username}</td>
                   <td>{x.page_id}</td>
                   <td>{x.is_active ? 'Aktif' : 'Pasif'}</td>
-                  <td>{x.token_health}</td>
-                  <td>{x.token_expires_at ?? '-'}</td>
+                  <td>
+                    <span className={`badge badge-${x.token_health === 'healthy' ? 'sent' : 'failed'}`}>
+                      {x.token_health === 'healthy' ? 'Sağlıklı' : 'Sorunlu'}
+                    </span>
+                  </td>
+                  <td>{x.token_expires_at ? new Date(x.token_expires_at).toLocaleDateString('tr-TR') : '-'}</td>
                   <td>
                     <Link className="link" href="/instagram/connect">
                       Yeniden Bağlan

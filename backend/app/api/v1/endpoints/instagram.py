@@ -1,5 +1,5 @@
 from urllib.parse import urlencode
-from uuid import uuid4
+from uuid import UUID, uuid4
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -143,12 +143,27 @@ def poll_now() -> dict[str, str]:
 
 
 @router.post("/manual-connect")
-def manual_connect(payload: ManualConnectRequest, db: Session = Depends(get_db)) -> dict:
-    company = db.query(Company).first()
+def manual_connect(
+    payload: ManualConnectRequest,
+    current_user: User = Depends(admin_plus),
+    db: Session = Depends(get_db)
+) -> dict:
+    company = db.get(Company, current_user.company_id)
     if not company:
         raise HTTPException(status_code=400, detail="Company not found")
 
     account = db.query(InstagramAccount).filter(InstagramAccount.ig_user_id == payload.ig_user_id).first()
+    
+    # Check max_accounts limit for new accounts
+    if not account:
+        current_count = db.query(InstagramAccount).filter(InstagramAccount.company_id == company.id).count()
+        if current_count >= company.max_accounts:
+            raise HTTPException(status_code=403, detail=f"Account limit reached ({company.max_accounts}). Please upgrade your plan.")
+
+    # Security check: if account exists, it must belong to this company
+    if account and account.company_id != current_user.company_id:
+        raise HTTPException(status_code=403, detail="Account already connected to another company")
+
     company.meta_access_token_encrypted = payload.page_access_token
     company.meta_token_expires_at = datetime.now(timezone.utc) + timedelta(days=settings.token_assumed_expiry_days)
     company.updated_at = datetime.now(timezone.utc)
@@ -188,8 +203,9 @@ def manual_connect(payload: ManualConnectRequest, db: Session = Depends(get_db))
 
 
 @router.get("/oauth/start")
-def oauth_start() -> dict[str, str]:
-    state = str(uuid4())
+def oauth_start(current_user: User = Depends(admin_plus)) -> dict[str, str]:
+    # Encode company_id into state to maintain multi-tenancy during callback
+    state = f"{uuid4()}:{current_user.company_id}"
     params = {
         "client_id": settings.meta_app_id,
         "redirect_uri": settings.meta_oauth_redirect_uri,
@@ -210,6 +226,13 @@ async def oauth_callback(
     if not settings.meta_app_id or not settings.meta_app_secret:
         raise HTTPException(status_code=400, detail="Meta app credentials are missing")
 
+    # Extract company_id from state
+    try:
+        _, company_id_str = state.split(":", 1)
+        company_id = UUID(company_id_str)
+    except (ValueError, IndexError):
+        raise HTTPException(status_code=400, detail="Invalid state parameter")
+
     client = MetaGraphClient()
     token_data = await client.exchange_code_for_token(code)
     access_token = token_data.get("access_token")
@@ -218,12 +241,9 @@ async def oauth_callback(
         raise HTTPException(status_code=400, detail="Meta token exchange failed")
 
     pages = await client.fetch_pages_with_instagram(access_token)
-    print("--------------------------------------------------", flush=True)
-    print(f"!!! DEBUG META RESPONSE: {pages}", flush=True)
-    print("--------------------------------------------------", flush=True)
     page_items = pages.get("data", [])
 
-    company = db.query(Company).first()
+    company = db.get(Company, company_id)
     if not company:
         raise HTTPException(status_code=400, detail="Company not found")
 
@@ -239,21 +259,20 @@ async def oauth_callback(
     db.add(company)
 
     connected = []
+    current_count = db.query(InstagramAccount).filter(InstagramAccount.company_id == company.id).count()
+
     for page in page_items:
         ig = page.get("instagram_business_account")
         if not ig or not ig.get("id"):
             continue
 
         existing = db.query(InstagramAccount).filter(InstagramAccount.ig_user_id == ig["id"]).first()
-        if existing:
-            existing.username = ig.get("username", existing.username)
-            existing.page_id = page.get("id", existing.page_id)
-            existing.access_token_encrypted = access_token
-            existing.token_expires_at = token_expires_at
-            existing.is_active = True
-            db.add(existing)
-            account = existing
-        else:
+        if not existing:
+            # Check limit for new account
+            if current_count >= company.max_accounts:
+                # We skip new accounts over the limit during OAuth
+                continue
+            
             account = InstagramAccount(
                 company_id=company.id,
                 ig_user_id=ig["id"],
@@ -264,6 +283,16 @@ async def oauth_callback(
                 is_active=True,
             )
             db.add(account)
+            current_count += 1
+        else:
+            # Reconnect of existing account - always allowed regardless of limit
+            existing.username = ig.get("username", existing.username)
+            existing.page_id = page.get("id", existing.page_id)
+            existing.access_token_encrypted = access_token
+            existing.token_expires_at = token_expires_at
+            existing.is_active = True
+            db.add(existing)
+            account = existing
         db.flush()
         connected.append(
             {

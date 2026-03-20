@@ -36,7 +36,7 @@ type ApiResponse = {
   items: CommentItem[];
 };
 
-type QuickView = "all" | "action" | "today" | "replied" | "sensitive";
+type QuickView = "all" | "action" | "today" | "replied" | "sensitive" | "pricing" | "critical";
 
 const API_BASE = "";
 
@@ -121,6 +121,8 @@ export default function CommentsPage() {
       if (quickView === "today" && !isToday(item.received_at)) return false;
       if (quickView === "replied" && item.status !== "replied") return false;
       if (quickView === "sensitive" && !item.is_sensitive) return false;
+      if (quickView === "pricing" && !(item.intent === "pricing_inquiry")) return false;
+      if (quickView === "critical" && !(item.intent === "complaint" || item.is_sensitive)) return false;
 
       if (statusFilter !== "all" && item.status !== statusFilter) return false;
       if (intentFilter !== "all" && item.intent !== intentFilter) return false;
@@ -294,6 +296,12 @@ export default function CommentsPage() {
           </button>
           <button className={`chip ${quickView === "sensitive" ? "chip-active" : ""}`} onClick={() => setQuickView("sensitive")}>
             Hassaslar
+          </button>
+          <button className={`chip ${quickView === "pricing" ? "chip-active" : ""}`} onClick={() => setQuickView("pricing")}>
+            Fiyat Soranlar
+          </button>
+          <button className={`chip ${quickView === "critical" ? "chip-active" : ""}`} onClick={() => setQuickView("critical")}>
+            Sikayet/Kritik
           </button>
         </div>
 
