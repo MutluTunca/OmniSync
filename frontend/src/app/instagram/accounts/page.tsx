@@ -88,9 +88,18 @@ export default function AccountsPage() {
                   <td>{x.page_id}</td>
                   <td>{x.is_active ? 'Aktif' : 'Pasif'}</td>
                   <td>
-                    <span className={`badge badge-${x.token_health === 'healthy' ? 'sent' : 'failed'}`}>
-                      {x.token_health === 'healthy' ? 'Sağlıklı' : 'Sorunlu'}
-                    </span>
+                    {x.token_health === 'active' && (
+                      <span className="badge badge-sent">Sağlıklı</span>
+                    )}
+                    {x.token_health === 'expiring_soon' && (
+                      <span className="badge badge-failed" style={{ backgroundColor: '#f59e0b' }}>Yenileme Gerekiyor</span>
+                    )}
+                    {(x.token_health === 'expired' || x.token_health === 'missing') && (
+                      <span className="badge badge-failed">Bağlantı Koptu</span>
+                    )}
+                    {x.token_health === 'unknown' && (
+                      <span className="badge badge-failed" style={{ backgroundColor: '#64748b' }}>Bilinmiyor</span>
+                    )}
                   </td>
                   <td>{x.token_expires_at ? new Date(x.token_expires_at).toLocaleDateString('tr-TR') : '-'}</td>
                   <td>
