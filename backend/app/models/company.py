@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Text
+from sqlalchemy import DateTime, Integer, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -16,6 +16,12 @@ class Company(Base):
     plan: Mapped[str] = mapped_column(Text, nullable=False, default="free")
     status: Mapped[str] = mapped_column(Text, nullable=False, default="active")
     timezone: Mapped[str] = mapped_column(Text, nullable=False, default="Europe/Istanbul")
+    
+    # Unit limits
+    max_accounts: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    daily_reply_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=50)
+    ai_model_tier: Mapped[str] = mapped_column(Text, nullable=False, default="gpt-4.1-mini")
+
     meta_access_token_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
     meta_token_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))

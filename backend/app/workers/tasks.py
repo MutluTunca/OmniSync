@@ -15,6 +15,7 @@ from app.core.config import settings
 from app.integrations.meta_client import MetaGraphClient
 from app.models.company import Company
 from app.models.audit_log import AuditLog
+from app.services.notification_service import notify_critical_comment
 from sqlalchemy import func
 import httpx
 
@@ -431,6 +432,19 @@ def analyze_comment_intent(comment_id: str) -> dict[str, str]:
         db.add(comment)
         db.commit()
 
+        # SMART Notification for Priority #2
+        if is_sensitive or intent == "complaint":
+            try:
+                company = db.get(Company, comment.company_id)
+                notify_critical_comment(
+                    comment_text=comment.text,
+                    username=comment.commenter_username or "unknown",
+                    intent=intent or "unknown",
+                    company_name=company.name if company else "OmniSync"
+                )
+            except Exception:
+                pass
+
         if not settings.manual_approval_default and not is_sensitive and intent != "spam_irrelevant":
             celery_app.send_task("app.workers.tasks.generate_comment_reply", args=[str(comment.id)])
 
@@ -488,11 +502,29 @@ def generate_comment_reply(comment_id: str) -> dict[str, str]:
         )
         recent_replies = [row[0] for row in recent_rows if row[0]]
 
+        # Fetch media info for vision context
+        media_url = None
+        media_caption = None
+        post = db.get(Post, comment.post_id)
+        if post:
+            media_caption = post.caption_text
+            try:
+                account = db.get(InstagramAccount, post.instagram_account_id)
+                if account and account.access_token_encrypted:
+                    m_data = MetaGraphClient().fetch_media_details(post.ig_media_id, account.access_token_encrypted)
+                    media_url = m_data.get("media_url")
+                    if not media_caption:
+                        media_caption = m_data.get("caption")
+            except Exception:
+                pass
+
         text = generate_reply(
             comment_text=comment.text,
             intent=comment.intent or "general_interest",
             username=comment.commenter_username,
             recent_replies=recent_replies,
+            media_url=media_url,
+            media_caption=media_caption,
         )
         if not text:
             comment.status = "skipped"

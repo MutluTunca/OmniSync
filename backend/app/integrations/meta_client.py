@@ -61,7 +61,7 @@ class MetaGraphClient:
         response = httpx.get(
             f"{self.base_url}/{ig_user_id}/media",
             params={
-                "fields": "id,caption,media_type,timestamp",
+                "fields": "id,caption,media_type,media_url,timestamp",
                 "limit": limit,
                 "access_token": access_token,
             },

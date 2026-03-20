@@ -66,6 +66,8 @@ def generate_reply(
     intent: str,
     username: str | None = None,
     recent_replies: list[str] | None = None,
+    media_url: str | None = None,
+    media_caption: str | None = None,
 ) -> str:
     base = DEFAULT_TEMPLATES.get(intent, DEFAULT_TEMPLATES["general_interest"])
     if intent == "spam_irrelevant":
@@ -80,29 +82,41 @@ def generate_reply(
     try:
         client = get_openai_client()
         avoid_block = "\n".join(f"- {x}" for x in (recent_replies or [])[:5]) or "- yok"
+        
+        system_prompt = (
+            "Turkce, samimi ve profesyonel tek bir emlak yaniti yaz. "
+            "Maksimum 240 karakter. Spam gibi olmasin. "
+            "Ayni kalibi tekrar etme, her cevapta farkli ifade kullan."
+        )
+        
+        user_content = [
+            {
+                "type": "text", 
+                "text": (
+                    f"Yorum: {comment_text}\n"
+                    f"Intent: {intent}\n"
+                    f"Taslak: {draft}\n"
+                    f"Post Aciklamasi: {media_caption or 'yok'}\n"
+                    f"Tekrar etme listesi:\n{avoid_block}\n"
+                    "Yanitta DM'e yonlendiren kisa bir cagirida bulun."
+                )
+            }
+        ]
+        
+        if media_url:
+            user_content.append({
+                "type": "image_url",
+                "image_url": {"url": media_url}
+            })
+
         completion = client.chat.completions.create(
             model=settings.openai_model_reply,
             temperature=0.8,
             messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "Turkce, samimi ve profesyonel tek bir emlak yaniti yaz. "
-                        "Maksimum 240 karakter. Spam gibi olmasin. "
-                        "Ayni kalibi tekrar etme, her cevapta farkli ifade kullan."
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": (
-                        f"Yorum: {comment_text}\n"
-                        f"Intent: {intent}\n"
-                        f"Taslak: {draft}\n"
-                        f"Tekrar etme listesi:\n{avoid_block}\n"
-                        "Yanitta DM'e yonlendiren kisa bir cagirida bulun."
-                    ),
-                },
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_content},
             ],
+            max_tokens=150,
         )
         text = (completion.choices[0].message.content or draft).strip()
         return text[:240]

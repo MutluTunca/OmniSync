@@ -7,7 +7,8 @@ from app.api.v1.endpoints import (
     monitoring, 
     users, 
     webhooks,
-    audit_logs
+    audit_logs,
+    analytics
 )
 
 
@@ -20,3 +21,4 @@ api_router.include_router(webhooks.router, prefix="/webhooks", tags=["webhooks"]
 api_router.include_router(monitoring.router, prefix="/monitoring", tags=["monitoring"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(audit_logs.router, prefix="/audit-logs", tags=["audit-logs"])
+api_router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])

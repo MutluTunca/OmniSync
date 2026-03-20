@@ -193,6 +193,11 @@ export default async function HomePage() {
           </Link>
         </article>
         <article className="card">
+          <h2>📊 Analitik ve Raporlar</h2>
+          <p>Performans metrikleri ve müşteri duygu analizi.</p>
+          <Link href="/analytics" className="link">Raporları Gör</Link>
+        </article>
+        <article className="card">
           <h2>Sistem Kayıtları</h2>
           <p>Yorum gonderimleri, hatalar ve sistem olaylari.</p>
           <Link className="link" href="/logs">

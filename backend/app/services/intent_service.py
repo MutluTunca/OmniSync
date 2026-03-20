@@ -12,6 +12,7 @@ INTENT_LABELS = {
     "negotiation_attempt",
     "general_interest",
     "spam_irrelevant",
+    "complaint",
 }
 
 
@@ -51,7 +52,7 @@ def classify_intent(text: str) -> tuple[str, float, bool, str]:
                         "Sen bir emlak yorum siniflandirma motorusun. "
                         "Sadece su intentlerden birini sec: "
                         "price_inquiry, location_inquiry, details_request, contact_request, "
-                        "negotiation_attempt, general_interest, spam_irrelevant. "
+                        "negotiation_attempt, general_interest, spam_irrelevant, complaint. "
                         "JSON dondur: {intent, confidence, is_sensitive, reason}."
                     ),
                 },
