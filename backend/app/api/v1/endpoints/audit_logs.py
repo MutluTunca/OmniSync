@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
-from app.api.v1.dependencies import get_current_user, get_db
+from app.api.v1.dependencies import get_current_user, get_db, RoleChecker
 from app.models.user import User
 from app.models.audit_log import AuditLog
 

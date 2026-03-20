@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import func, case, desc
 from sqlalchemy.orm import Session
 
-from app.api.v1.dependencies import get_current_user, get_db
+from app.api.v1.dependencies import get_current_user, get_db, RoleChecker
 from app.models.user import User
 from app.models.comment import Comment
 from app.models.reply import Reply
