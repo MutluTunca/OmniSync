@@ -16,10 +16,14 @@ export default function LoginPage() {
     setIsLoading(true);
     setError(null);
 
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+    // Ensure we use a relative path if on the same domain to avoid CORS/Mixed Content issues
+    const loginUrl = apiBaseUrl.startsWith("http") 
+      ? `${apiBaseUrl}/api/v1/auth/login` 
+      : "/api/v1/auth/login";
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/v1/auth/login`, {
+      const response = await fetch(loginUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
