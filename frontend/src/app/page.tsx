@@ -58,6 +58,7 @@ export default function HomePage() {
   const [tokenHealth, setTokenHealth] = useState<TokenHealthResponse | null>(null);
   const [celeryMon, setCeleryMon] = useState<CeleryHealth | null>(null);
   const [webhookMon, setWebhookMon] = useState<WebhookHealth | null>(null);
+  const [aiInfo, setAiInfo] = useState<{ provider: string; model: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -79,6 +80,9 @@ export default function HomePage() {
         if (hRes.ok) {
           const hData = await hRes.json();
           setHealth(hData.status ?? "online");
+          if (hData.ai_provider) {
+            setAiInfo({ provider: hData.ai_provider, model: hData.ai_model });
+          }
         } else {
           setHealth("offline");
         }
@@ -183,7 +187,7 @@ export default function HomePage() {
             <div className="menu-card-image" style={{ backgroundImage: "url('/images/dashboard/ai.png')" }}></div>
             <div className="menu-card-body">
               <h3>Yapay Zeka Motoru</h3>
-              <p>Bağlı model: {tokenHealth ? 'GPT-4o Mini' : 'Bekleniyor...'}</p>
+              <p>Bağlı model: {aiInfo ? `${aiInfo.provider.toUpperCase()} (${aiInfo.model})` : 'Bekleniyor...'}</p>
             </div>
           </div>
         </section>

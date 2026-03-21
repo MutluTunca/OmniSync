@@ -2,6 +2,7 @@ from typing import Any
 
 from app.core.config import settings
 from app.integrations.openai_client import get_openai_client
+from app.integrations.gemini_client import get_gemini_model
 
 
 INTENT_LABELS = {
@@ -32,10 +33,37 @@ def _heuristic_intent(text: str) -> tuple[str, float]:
         return "spam_irrelevant", 0.92
     return "general_interest", 0.7
 
-
 def classify_intent(text: str) -> tuple[str, float, bool, str]:
     heuristic_intent, heuristic_conf = _heuristic_intent(text)
 
+    # Gemini Logic
+    if settings.ai_provider == "gemini" and settings.gemini_api_key:
+        try:
+            model = get_gemini_model()
+            prompt = (
+                "Sen bir emlak yorum siniflandirma motorusun.\n"
+                "Mesaj: " + text + "\n\n"
+                "Sadece su intentlerden birini sec: price_inquiry, location_inquiry, details_request, contact_request, negotiation_attempt, general_interest, spam_irrelevant, complaint.\n"
+                "JSON formatında cevap ver: {\"intent\": \"...\", \"confidence\": 0.9, \"is_sensitive\": false, \"reason\": \"...\"}"
+            )
+            response = model.generate_content(
+                prompt,
+                generation_config={"response_mime_type": "application/json"}
+            )
+            import json
+            data = json.loads(response.text)
+            intent = str(data.get("intent", heuristic_intent))
+            confidence = float(data.get("confidence", heuristic_conf))
+            is_sensitive = bool(data.get("is_sensitive", False))
+            reason = str(data.get("reason", "gemini"))
+            
+            if intent not in INTENT_LABELS:
+                return heuristic_intent, heuristic_conf, False, "fallback_invalid_label"
+            return intent, max(0.0, min(confidence, 1.0)), is_sensitive, reason
+        except Exception:
+            return heuristic_intent, heuristic_conf, False, "fallback_exception_gemini"
+
+    # OpenAI Logic
     if not settings.openai_api_key:
         return heuristic_intent, heuristic_conf, False, "heuristic"
 

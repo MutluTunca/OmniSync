@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { MessageSquare, CheckCircle, Clock, Cpu, RefreshCw, Search, ListFilter } from "lucide-react";
 
 type ReplyItem = {
   id: string;
@@ -273,33 +274,35 @@ export default function CommentsPage() {
       <div className="topbar">
         <div>
           <h1>Yorum Merkezi</h1>
-          <p>Tum Instagram yorumlarini ve AI yanitlarini buradan takip edebilirsiniz.</p>
+          <p>Tüm Instagram yorumlarını ve AI yanıtlarını buradan takip edebilirsiniz.</p>
         </div>
-        <div className="actions">
-          <button className="btn-secondary" onClick={loadComments} disabled={loading || busyId !== null}>
+        <div className="actions" style={{ display: 'flex', gap: '12px' }}>
+          <button className="btn-secondary" onClick={loadComments} disabled={loading || busyId !== null} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
             Yenile
           </button>
-          <button className="btn-primary" onClick={triggerPollNow} disabled={busyId !== null}>
-            {busyId === "poll" ? "Kontrol Ediliyor..." : "Yorumlari Kontrol Et"}
+          <button className="btn-primary" onClick={triggerPollNow} disabled={busyId !== null} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Search size={16} />
+            {busyId === "poll" ? "Kontrol Ediliyor..." : "Yorumları Kontrol Et"}
           </button>
         </div>
       </div>
 
       <section className="stats-grid">
         <article className="stat-card">
-          <span>Toplam</span>
+          <span><MessageSquare size={18} color="var(--primary)" /> Toplam</span>
           <strong>{stats.total}</strong>
         </article>
         <article className="stat-card">
-          <span>Yanitlanan</span>
+          <span><CheckCircle size={18} color="#10b981" /> Yanıtlanan</span>
           <strong>{stats.replied}</strong>
         </article>
         <article className="stat-card">
-          <span>Bekleyen</span>
+          <span><Clock size={18} color="#f59e0b" /> Bekleyen</span>
           <strong>{stats.pending}</strong>
         </article>
         <article className="stat-card">
-          <span>Yanit Uretilen</span>
+          <span><Cpu size={18} color="#6366f1" /> Yanıt Üretilen</span>
           <strong>{stats.withReply}</strong>
         </article>
       </section>

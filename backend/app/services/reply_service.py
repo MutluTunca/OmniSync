@@ -2,6 +2,8 @@ import random
 
 from app.core.config import settings
 from app.integrations.openai_client import get_openai_client
+from app.integrations.gemini_client import get_gemini_model
+import httpx
 
 
 DEFAULT_TEMPLATES = {
@@ -76,6 +78,43 @@ def generate_reply(
     greeting = f"Merhaba @{username}, " if username else "Merhaba, "
     draft = f"{greeting}{base}"
 
+    # Gemini Logic
+    if settings.ai_provider == "gemini" and settings.gemini_api_key:
+        try:
+            model = get_gemini_model()
+            avoid_block = "\n".join(f"- {x}" for x in (recent_replies or [])[:5]) or "- yok"
+            
+            prompt_parts = [
+                "Turkce, samimi ve profesyonel tek bir emlak yaniti yaz. "
+                "Maksimum 240 karakter. Spam gibi olmasin. "
+                "Ayni kalibi tekrar etme, her cevapta farkli ifade kullan.\n\n"
+                f"Yorum: {comment_text}\n"
+                f"Intent: {intent}\n"
+                f"Taslak: {draft}\n"
+                f"Post Aciklamasi: {media_caption or 'yok'}\n"
+                f"Tekrar etme listesi:\n{avoid_block}\n"
+                "Yanitta DM'e yonlendiren kisa bir cagirida bulun."
+            ]
+            
+            if media_url:
+                try:
+                    with httpx.Client() as client:
+                        resp = client.get(media_url)
+                        if resp.status_code == 200:
+                            prompt_parts.append({
+                                "mime_type": "image/jpeg",
+                                "data": resp.content
+                            })
+                except Exception:
+                    pass
+
+            response = model.generate_content(prompt_parts)
+            text = (response.text or draft).strip()
+            return text[:240]
+        except Exception:
+            return _fallback_reply(intent=intent, username=username)
+
+    # OpenAI Logic
     if not settings.openai_api_key:
         return _fallback_reply(intent=intent, username=username)
 

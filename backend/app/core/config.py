@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     openai_model_reply: str = "gpt-4.1-mini"
     openai_model_extraction: str = "gpt-4.1-mini"
 
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-1.5-flash"
+    ai_provider: str = "openai"  # "openai" or "gemini"
+
     manual_approval_default: bool = True
     daily_max_reply_per_account: int = 250
     reply_delay_min_sec: int = 30
