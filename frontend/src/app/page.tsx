@@ -104,118 +104,90 @@ export default function HomePage() {
 
   return (
     <main className="container">
-      <h1>OmniSync Emlak Dashboard</h1>
-      <p>Durum: {health}</p>
-      
-      {loading ? (
-        <p>Dashboard verileri yükleniyor...</p>
-      ) : (
-        <div className="card-grid">
-          <article className="card">
-            <h2>Yorum Yonetimi</h2>
-            <p>Instagram yorumlarini tek panelde izleyin ve yonetin.</p>
-            <Link className="link" href="/comments">
-              Yorum merkezini ac
-            </Link>
-          </article>
-
-          <article className="card">
-            <h2>Hesap Yönetimi</h2>
-            <p>Bağlı Instagram hesaplarını yönetmek ve yeniden bağlanmak için.</p>
-            <Link className="link" href="/instagram/accounts">
-              Hesapları yönet
-            </Link>
-          </article>
-
-          <article className="card">
-            <h2>Operasyon Sağlığı</h2>
-            {celeryMon ? (
-              <>
-                <p>
-                  Kuyruk (webhooks/ai/outbound): {celeryMon.queue_backlog.webhooks}/
-                  {celeryMon.queue_backlog.ai}/{celeryMon.queue_backlog.outbound}
-                </p>
-              </>
-            ) : (
-              <p>Kuyruk durumu alınamıyor.</p>
-            )}
-            {webhookMon ? (
-              <>
-                <p>
-                  Webhook (bekleyen/toplam): {webhookMon.counts.pending}/{webhookMon.counts.total}
-                </p>
-                <p>En uzun bekleyen (sn): {webhookMon.oldest_pending_age_sec ?? '-'}</p>
-              </>
-            ) : (
-              <p>Webhook durumu alınamıyor.</p>
-            )}
-          </article>
-          
-          <article className="card">
-            <h2>AI Otomasyon</h2>
-            <p>Intent analizi + insan benzeri otomatik yanit motoru.</p>
-          </article>
-          
-          <article className="card">
-            <h2>Token Sagligi</h2>
-            {tokenHealth ? (
-              <>
-                <p>
-                  Toplam: {tokenHealth.summary.total} | Aktif: {tokenHealth.summary.active} | Yakin bitiyor: {tokenHealth.summary.expiring_soon}
-                </p>
-                <p>
-                  Dolmus: {tokenHealth.summary.expired} | Bilinmiyor: {tokenHealth.summary.unknown} | Token yok: {tokenHealth.summary.missing}
-                </p>
-                {tokenHealth.items.length > 0 ? (
-                  <p>{tokenHealth.items.map((x) => `${x.username} (${tokenLabel(x.token_health)})`).join(", ")}</p>
-                ) : (
-                  <p>Bagli hesap yok.</p>
-                )}
-                {requiresReconnect ? (
-                  <>
-                    <p>
-                      Yeniden baglanmasi gereken aktif hesaplar: {reconnectItems.map((x) => x.username).join(", ")}
-                    </p>
-                    <Link className="link" href="/instagram/connect">
-                      Instagram hesaplarini yeniden bagla
-                    </Link>
-                  </>
-                ) : null}
-              </>
-            ) : (
-              <p>Token sagligi alinamadi.</p>
-            )}
-          </article>
-
-          <article className="card">
-            <h2>Kullanıcılar</h2>
-            <p>Kullanıcıları listele ve yeni kullanıcı ekle.</p>
-            <Link className="link" href="/users">
-              Kullanıcı yönetimi
-            </Link>
-          </article>
-          
-          <article className="card">
-            <h2>📊 Analitik ve Raporlar</h2>
-            <p>Performans metrikleri ve müşteri duygu analizi.</p>
-            <Link href="/analytics" className="link">Raporları Gör</Link>
-          </article>
-          
-          <article className="card">
-            <h2>Sistem Kayıtları</h2>
-            <p>Yorum gonderimleri, hatalar ve sistem olaylari.</p>
-            <Link className="link" href="/logs">
-              Loglari incele
-            </Link>
-          </article>
+      <div className="topbar">
+        <div>
+          <h1>OmniSync Emlak Dashboard</h1>
+          <p>Yapay Zeka Destekli Gayrimenkul Yönetim Paneli</p>
         </div>
-      )}
-      
-      <div style={{ marginTop: '30px' }}>
-        <Link className="link" href="/login">
-          Farklı bir hesapla giris yap
+        <Link href="/login" className="btn-secondary" style={{ textDecoration: 'none' }}>
+          Farklı Hesapla Giriş Yap
         </Link>
       </div>
+
+      {loading ? (
+        <div style={{ textAlign: "center", padding: "60px" }}>
+          <p>Dashboard verileri yükleniyor...</p>
+        </div>
+      ) : (
+        <section className="menu-grid">
+          {/* Yorum Yonetimi */}
+          <Link href="/comments" className="menu-card">
+            <div className="menu-card-image" style={{ backgroundImage: "url('/images/dashboard/comments.png')" }}></div>
+            <div className="menu-card-body">
+              <h3>Yorum Yönetimi</h3>
+              <p>Instagram yorumlarını tek panelde izleyin ve yapay zeka ile otomatik yanıtlayın.</p>
+            </div>
+          </Link>
+
+          {/* Hesap Yönetimi */}
+          <Link href="/instagram/accounts" className="menu-card">
+            {tokenHealth && (
+              <div className="health-stat-minimal" style={{ color: requiresReconnect ? "var(--danger-text)" : "var(--success-text)" }}>
+                {tokenHealth.summary.active} Hesap Aktif
+              </div>
+            )}
+            <div className="menu-card-image" style={{ backgroundImage: "url('/images/dashboard/accounts.png')" }}></div>
+            <div className="menu-card-body">
+              <h3>Hesap Bağlantıları</h3>
+              <p>Bağlı Instagram hesaplarını yönetin ve yeni bağlantılar kurun.</p>
+            </div>
+          </Link>
+
+          {/* Analitik */}
+          <Link href="/analytics" className="menu-card">
+            <div className="menu-card-image" style={{ backgroundImage: "url('/images/dashboard/analytics.png')" }}></div>
+            <div className="menu-card-body">
+              <h3>Analitik & Raporlar</h3>
+              <p>Performans metriklerini ve müşteri duygu analizlerini takip edin.</p>
+            </div>
+          </Link>
+
+          {/* Kullanıcılar */}
+          <Link href="/users" className="menu-card">
+            <div className="menu-card-image" style={{ backgroundImage: "url('/images/dashboard/users.png')" }}></div>
+            <div className="menu-card-body">
+              <h3>Kullanıcı Yönetimi</h3>
+              <p>Ekip üyelerini yönetin, yeni kullanıcılar ekleyin ve yetkilendirin.</p>
+            </div>
+          </Link>
+
+          {/* Sistem İzleme / Loglar */}
+          <Link href="/logs" className="menu-card">
+            {celeryMon && (
+              <div className="health-stat-minimal">
+                Kuyruk: {celeryMon.queue_backlog.webhooks + celeryMon.queue_backlog.ai + celeryMon.queue_backlog.outbound}
+              </div>
+            )}
+            <div className="menu-card-image" style={{ backgroundImage: "url('/images/dashboard/monitoring.png')" }}></div>
+            <div className="menu-card-body">
+              <h3>Sistem Kayıtları</h3>
+              <p>Yorum gönderimleri, operasyonel hatalar ve sistem loglarını inceleyin.</p>
+            </div>
+          </Link>
+
+          {/* AI Ayarları / Status */}
+          <div className="menu-card" style={{ cursor: 'default' }}>
+             <div className="health-stat-minimal" style={{ color: health === "online" ? "var(--success-text)" : "var(--danger-text)" }}>
+               SİSTEM: {health.toUpperCase()}
+             </div>
+            <div className="menu-card-image" style={{ backgroundImage: "url('/images/dashboard/ai.png')" }}></div>
+            <div className="menu-card-body">
+              <h3>Yapay Zeka Motoru</h3>
+              <p>Bağlı model: {tokenHealth ? 'GPT-4o Mini' : 'Bekleniyor...'}</p>
+            </div>
+          </div>
+        </section>
+      )}
     </main>
   );
 }
