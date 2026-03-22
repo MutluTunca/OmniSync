@@ -13,6 +13,7 @@ class Company(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(Text, nullable=False)
+    logo_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     plan: Mapped[str] = mapped_column(Text, nullable=False, default="free")
     status: Mapped[str] = mapped_column(Text, nullable=False, default="active")
     timezone: Mapped[str] = mapped_column(Text, nullable=False, default="Europe/Istanbul")

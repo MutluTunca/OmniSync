@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -40,6 +40,20 @@ def get_current_user(
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="User not found or inactive")
     return user
+
+def get_active_company_id(
+    current_user: User = Depends(get_current_user),
+    x_company_id: str | None = Header(None, alias="X-Company-ID")
+) -> UUID:
+    # If user is owner and provides a header, use that
+    if current_user.role == "owner" and x_company_id:
+        try:
+            return UUID(x_company_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid X-Company-ID header")
+    
+    # Otherwise, fall back to user's own company
+    return current_user.company_id
 
 class RoleChecker:
     def __init__(self, *allowed_roles: str):

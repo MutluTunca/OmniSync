@@ -48,9 +48,15 @@ export default function UsersPage() {
     setLoading(true);
     setError("");
     try {
+      const selectedCompanyId = window.localStorage.getItem("omnisync_selected_company_id");
+      const headers: Record<string, string> = { Authorization: `Bearer ${accessToken}` };
+      if (selectedCompanyId) {
+        headers["X-Company-ID"] = selectedCompanyId;
+      }
+
       const res = await fetch(`${API_BASE}/api/v1/users`, {
         cache: "no-store",
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers,
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -103,12 +109,18 @@ export default function UsersPage() {
     setMessage("");
     setLoading(true);
     try {
+      const selectedCompanyId = window.localStorage.getItem("omnisync_selected_company_id");
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      };
+      if (selectedCompanyId) {
+        headers["X-Company-ID"] = selectedCompanyId;
+      }
+
       const res = await fetch(`${API_BASE}/api/v1/users`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
         body: JSON.stringify(createForm),
       });
       if (!res.ok) {

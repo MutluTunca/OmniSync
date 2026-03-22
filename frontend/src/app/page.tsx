@@ -11,8 +11,15 @@ import {
   Cpu, 
   Loader2, 
   ArrowRight,
-  Settings
+  Settings,
+  TrendingUp,
+  ChevronDown,
+  Building2,
+  Lock
 } from "lucide-react";
+import { 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area
+} from "recharts";
 
 type TokenHealthSummary = {
   total: number;
@@ -70,6 +77,10 @@ export default function HomePage() {
   const [celeryMon, setCeleryMon] = useState<CeleryHealth | null>(null);
   const [webhookMon, setWebhookMon] = useState<WebhookHealth | null>(null);
   const [aiInfo, setAiInfo] = useState<{ provider: string; model: string } | null>(null);
+  const [trends, setTrends] = useState<any[]>([]);
+  const [company, setCompany] = useState<any>(null);
+  const [allCompanies, setAllCompanies] = useState<any[]>([]);
+  const [userRole, setUserRole] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -78,14 +89,20 @@ export default function HomePage() {
 
     const loadData = async () => {
       const token = window.localStorage.getItem(TOKEN_STORAGE_KEY);
+      const selectedCompanyId = window.localStorage.getItem("omnisync_selected_company_id");
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+      if (selectedCompanyId) {
+        headers["X-Company-ID"] = selectedCompanyId;
+      }
 
       try {
-        const [hRes, tRes, cRes, wRes] = await Promise.all([
+        const [hRes, tRes, cRes, wRes, analyticsRes, companyRes] = await Promise.all([
           fetch(`${API_BASE}/api/v1/healthz`, { cache: "no-store", headers }),
           fetch(`${API_BASE}/api/v1/instagram/token-health`, { cache: "no-store", headers }),
           fetch(`${API_BASE}/api/v1/monitoring/celery`, { cache: "no-store", headers }),
-          fetch(`${API_BASE}/api/v1/monitoring/webhooks`, { cache: "no-store", headers })
+          fetch(`${API_BASE}/api/v1/monitoring/webhooks`, { cache: "no-store", headers }),
+          fetch(`${API_BASE}/api/v1/analytics/trends`, { cache: "no-store", headers }),
+          fetch(`${API_BASE}/api/v1/company/me`, { cache: "no-store", headers })
         ]);
 
         if (hRes.ok) {
@@ -101,6 +118,21 @@ export default function HomePage() {
         if (tRes.ok) setTokenHealth(await tRes.json());
         if (cRes.ok) setCeleryMon(await cRes.json());
         if (wRes.ok) setWebhookMon(await wRes.json());
+        if (analyticsRes.ok) setTrends(await analyticsRes.json());
+        if (companyRes.ok) {
+          const cData = await companyRes.json();
+          setCompany(cData);
+        }
+
+        // If user is owner, list all companies
+        const userStr = token ? JSON.parse(atob(token.split('.')[1])) : null;
+        if (userStr) {
+          setUserRole(userStr.role);
+          if (userStr.role === 'owner') {
+             const listRes = await fetch(`${API_BASE}/api/v1/company/list`, { headers });
+             if (listRes.ok) setAllCompanies(await listRes.json());
+          }
+        }
       } catch (err) {
         console.error("Dashboard data load failed", err);
         setHealth("offline");
@@ -126,11 +158,43 @@ export default function HomePage() {
 
       <main className="container dashboard-content">
         <header className="topbar">
-          <div>
-            <h1>OmniSync Dashboard</h1>
-            <p>Gayrimenkul portföyünüz ve dijital etkileşimleriniz tek noktada.</p>
+          <div className="flex items-center" style={{ gap: '1.5rem' }}>
+            {company?.logo_url ? (
+              <img src={company.logo_url} alt="Logo" style={{ height: '48px', borderRadius: '12px' }} />
+            ) : (
+              <div className="glass-card flex items-center justify-center" style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--primary)', color: 'white' }}>
+                <Building2 size={24} />
+              </div>
+            )}
+            <div>
+              <div className="flex items-center" style={{ gap: '0.5rem' }}>
+                <h1 style={{ margin: 0 }}>{company?.name || 'OmniSync'}</h1>
+                {userRole === 'owner' && (
+                  <span className="badge-owner"><Lock size={12} style={{marginRight:'4px'}}/> Sistem Sahibi</span>
+                )}
+              </div>
+              <p style={{ margin: 0 }}>{company?.name ? `${company.name} Ofis Yönetimi` : 'Gayrimenkul Dijital Asistanı'}</p>
+            </div>
           </div>
-          <div className="topbar-actions">
+          
+          <div className="topbar-actions flex items-center" style={{ gap: '1rem' }}>
+             {userRole === 'owner' && (
+               <div className="company-switcher-container">
+                  <select 
+                    className="glass-select"
+                    value={company?.id || ""}
+                    onChange={(e) => {
+                      window.localStorage.setItem("omnisync_selected_company_id", e.target.value);
+                      window.location.reload();
+                    }}
+                  >
+                    <option value="" disabled>Şirket Değiştir</option>
+                    {allCompanies.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+               </div>
+             )}
             <Link href="/login" className="btn-secondary">
               Giriş Yap / Değiştir
             </Link>
@@ -143,7 +207,63 @@ export default function HomePage() {
             <p>Veriler senkronize ediliyor...</p>
           </div>
         ) : (
-          <section className="menu-grid">
+          <>
+            {/* Quick Glance Chart Section */}
+            <div className="glass-card chart-hero" style={{ 
+              marginBottom: '2rem', 
+              padding: '1.25rem',
+              borderRadius: '24px',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <TrendingUp size={20} color="var(--primary)" />
+                  <h2 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0, color: '#1e293b' }}>Hızlı Bakış: Etkileşim</h2>
+                </div>
+                <Link href="/analytics" style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: '600' }}>
+                  Tümü <ArrowRight size={14} style={{ marginLeft: '4px', verticalAlign: 'middle' }} />
+                </Link>
+              </div>
+              
+              <div style={{ height: '120px', width: '100%' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={trends}>
+                    <defs>
+                      <linearGradient id="colorTrend" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2}/>
+                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <Area 
+                      type="monotone" 
+                      dataKey="count" 
+                      stroke="#6366f1" 
+                      strokeWidth={2} 
+                      fillOpacity={1} 
+                      fill="url(#colorTrend)" 
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+              
+              <div style={{ 
+                marginTop: '1rem', 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                color: '#64748b', 
+                fontSize: '0.75rem',
+                borderTop: '1px solid rgba(0,0,0,0.03)',
+                paddingTop: '0.75rem'
+              }}>
+                <span>Son 7 Günlük Trend</span>
+                <span style={{ fontWeight: 'bold', color: '#0f172a' }}>
+                  {trends.reduce((acc, curr) => acc + (curr.count || 0), 0)} Toplam Yorum
+                </span>
+              </div>
+            </div>
+
+            <section className="menu-grid">
             {/* Yorum Yonetimi */}
             <Link href="/comments" className="menu-card glass-card">
               <div className="menu-card-image" style={{ backgroundImage: "url('/images/dashboard/comments.png')" }}>
@@ -240,6 +360,7 @@ export default function HomePage() {
               </div>
             </Link>
           </section>
+          </>
         )}
       </main>
 
@@ -358,6 +479,36 @@ export default function HomePage() {
             align-items: flex-start;
             gap: 20px;
           }
+        }
+
+        .badge-owner {
+          background: #0f172a;
+          color: #f8fafc;
+          font-size: 0.65rem;
+          padding: 2px 8px;
+          border-radius: 99px;
+          font-weight: 700;
+          text-transform: uppercase;
+          display: inline-flex;
+          align-items: center;
+        }
+
+        .glass-select {
+          background: rgba(255, 255, 255, 0.5);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(0,0,0,0.1);
+          padding: 8px 16px;
+          border-radius: 12px;
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: #1e293b;
+          outline: none;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .glass-select:hover {
+          background: rgba(255, 255, 255, 0.8);
+          border-color: var(--primary);
         }
       `}</style>
     </div>

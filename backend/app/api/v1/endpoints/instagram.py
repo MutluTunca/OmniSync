@@ -7,7 +7,7 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.api.v1.dependencies import get_current_user, RoleChecker
+from app.api.v1.dependencies import get_current_user, get_active_company_id, RoleChecker
 from app.core.config import settings
 from app.db.session import get_db
 from app.integrations.meta_client import MetaGraphClient
@@ -57,13 +57,13 @@ def _effective_company_token(company: Company, accounts: list[InstagramAccount])
     return None, None
 
 
-@router.get("/accounts")
 def list_accounts(
     current_user: User = Depends(RoleChecker("owner", "admin", "manager", "operator", "agent")),
+    active_company_id: UUID = Depends(get_active_company_id),
     db: Session = Depends(get_db),
 ) -> dict:
-    items = db.query(InstagramAccount).filter(InstagramAccount.company_id == current_user.company_id).all()
-    company = db.get(Company, current_user.company_id)
+    items = db.query(InstagramAccount).filter(InstagramAccount.company_id == active_company_id).all()
+    company = db.get(Company, active_company_id)
     effective_token, effective_expiry = _effective_company_token(company, items)
     company_token_health = _token_health(effective_token, effective_expiry)
     return {
@@ -83,16 +83,16 @@ def list_accounts(
     }
 
 
-@router.get("/token-health")
 def token_health(
     current_user: User = Depends(RoleChecker("owner", "admin", "manager", "operator", "agent")),
+    active_company_id: UUID = Depends(get_active_company_id),
     db: Session = Depends(get_db),
 ) -> dict:
-    company = db.get(Company, current_user.company_id)
+    company = db.get(Company, active_company_id)
     if not company:
         return {"summary": {"total": 0, "active": 0, "expiring_soon": 0, "expired": 0, "unknown": 0, "missing": 0}, "items": []}
 
-    items = db.query(InstagramAccount).filter(InstagramAccount.company_id == current_user.company_id).all()
+    items = db.query(InstagramAccount).filter(InstagramAccount.company_id == active_company_id).all()
     effective_token, effective_expiry = _effective_company_token(company, items)
     summary = {"total": len(items), "active": 0, "expiring_soon": 0, "expired": 0, "unknown": 0, "missing": 0}
     rows = []

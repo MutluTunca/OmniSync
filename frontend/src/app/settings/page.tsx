@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle, AlertCircle, Loader2, Zap, Server, Settings } from "lucide-react";
+import { ArrowLeft, CheckCircle, AlertCircle, Loader2, Zap, Server, Settings, Building2, Lock, Users } from "lucide-react";
 
 type CompanyDetails = {
   id: string;
@@ -14,6 +14,7 @@ type CompanyDetails = {
   daily_reply_limit: number;
   used_replies_today: number;
   ai_model_tier: string;
+  logo_url: string | null;
 };
 
 const API_BASE = "";
@@ -23,24 +24,48 @@ export default function SettingsPage() {
   const [company, setCompany] = useState<CompanyDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [logoInput, setLogoInput] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [userRole, setUserRole] = useState("");
+  const [newOfficeName, setNewOfficeName] = useState("");
+  const [isCreatingOffice, setIsCreatingOffice] = useState(false);
+  const [allCompanies, setAllCompanies] = useState<{id: string, name: string}[]>([]);
 
   useEffect(() => {
     const fetchCompany = async () => {
       const token = window.localStorage.getItem(TOKEN_STORAGE_KEY);
+      const selectedCompanyId = window.localStorage.getItem("omnisync_selected_company_id");
+      
       if (!token) {
         setError("Oturum bulunamadı. Lütfen giriş yapın.");
         setLoading(false);
         return;
       }
 
+      const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+      if (selectedCompanyId) {
+        headers["X-Company-ID"] = selectedCompanyId;
+      }
+
       try {
-        const res = await fetch(`${API_BASE}/api/v1/company/me`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await fetch(`${API_BASE}/api/v1/company/me`, { headers });
         if (res.ok) {
-          setCompany(await res.json());
+          const data = await res.json();
+          setCompany(data);
+          setLogoInput(data.logo_url || "");
         } else {
-          setError("Şirket/Paket bilgileri alınamadı.");
+          setError("Şirket bilgileri alınamadı.");
+        }
+
+        const decoded = JSON.parse(atob(token.split('.')[1]));
+        setUserRole(decoded.role);
+
+        // Fetch all companies if owner
+        if (decoded.role === 'owner') {
+          const listRes = await fetch(`${API_BASE}/api/v1/company/list`, { headers: { Authorization: `Bearer ${token}` } });
+          if (listRes.ok) {
+            setAllCompanies(await listRes.json());
+          }
         }
       } catch (err) {
         console.error(err);
@@ -52,16 +77,72 @@ export default function SettingsPage() {
     void fetchCompany();
   }, []);
 
+  const handleUpdateLogo = async () => {
+    setIsSaving(true);
+    const token = window.localStorage.getItem(TOKEN_STORAGE_KEY);
+    const selectedCompanyId = window.localStorage.getItem("omnisync_selected_company_id");
+    
+    const headers: Record<string, string> = { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}` 
+    };
+    if (selectedCompanyId) {
+      headers["X-Company-ID"] = selectedCompanyId;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/company/update`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ logo_url: logoInput })
+      });
+      if (res.ok) {
+        alert("Logo başarıyla güncellendi!");
+        window.location.reload();
+      } else {
+        alert("Güncelleme sırasında hata oluştu.");
+      }
+    } catch (e) {
+      alert("Bağlantı hatası.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCreateOffice = async () => {
+    if (!newOfficeName) return;
+    setIsCreatingOffice(true);
+    const token = window.localStorage.getItem(TOKEN_STORAGE_KEY);
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/company/create`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({ name: newOfficeName, plan: 'pro', max_accounts: 5 })
+      });
+      if (res.ok) {
+        alert("Yeni Ofis Başarıyla Oluşturuldu!");
+        setNewOfficeName("");
+        window.location.reload();
+      } else {
+        alert("Ofis oluşturulamadı.");
+      }
+    } catch (e) {
+      alert("Bağlantı hatası.");
+    } finally {
+      setIsCreatingOffice(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="dashboard-wrapper">
-        <div className="dashboard-background">
-          <div className="blob blob-1"></div>
-          <div className="blob blob-2"></div>
-        </div>
+        <div className="dashboard-background"><div className="blob blob-1"></div><div className="blob blob-2"></div></div>
         <div className="container" style={{ paddingTop: '80px', textAlign: 'center' }}>
           <Loader2 className="animate-spin" size={40} style={{ margin: '0 auto', color: 'var(--primary-color)' }} />
-          <p style={{ marginTop: '1rem', color: 'var(--text-secondary)' }}>Paket bilgileri yükleniyor...</p>
+          <p style={{ marginTop: '1rem', color: 'gray' }}>Yükleniyor...</p>
         </div>
       </div>
     );
@@ -69,11 +150,7 @@ export default function SettingsPage() {
 
   return (
     <div className="dashboard-wrapper flex">
-      {/* Background blobs for aesthetics */}
-      <div className="dashboard-background">
-        <div className="blob blob-1"></div>
-        <div className="blob blob-2"></div>
-      </div>
+      <div className="dashboard-background"><div className="blob blob-1"></div><div className="blob blob-2"></div></div>
 
       <main className="content-area">
         <header className="topbar">
@@ -82,26 +159,44 @@ export default function SettingsPage() {
               <ArrowLeft size={20} />
             </Link>
             <div>
-              <h1>Ayarlar & Paketim</h1>
-              <p>Şirket planınız ve kotalarınız</p>
+              <h1 className="page-title">Ayarlar & Paketim</h1>
+              <p className="page-subtitle">{company?.name} Ofis Yapılandırması</p>
             </div>
           </div>
+
+          {userRole === 'owner' && allCompanies.length > 0 && (
+            <div className="company-switcher-wrapper">
+                <select 
+                    className="glass-select"
+                    value={window.localStorage.getItem("omnisync_selected_company_id") || ""}
+                    onChange={(e) => {
+                        if (e.target.value) {
+                            window.localStorage.setItem("omnisync_selected_company_id", e.target.value);
+                        } else {
+                            window.localStorage.removeItem("omnisync_selected_company_id");
+                        }
+                        window.location.reload();
+                    }}
+                >
+                    <option value="">Varsayılan Ofis</option>
+                    {allCompanies.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                </select>
+                <div className="owner-badge">OWNER</div>
+            </div>
+          )}
         </header>
 
         <div className="page-content" style={{ maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
-          {error && (
-            <div className="filter-warning" style={{ marginBottom: "1.5rem" }}>
-              <AlertCircle size={18} />
-              <span>{error}</span>
-            </div>
-          )}
+          {error && <div className="filter-warning" style={{ marginBottom: "1.5rem" }}><AlertCircle size={18} /><span>{error}</span></div>}
 
           {company && (
             <div className="settings-grid">
-              {/* Profile Card */}
+              {/* Profile & Logo Card */}
               <div className="glass-card settings-card">
                 <div className="card-header">
-                  <Server className="icon-title" size={24} />
+                  <Building2 className="icon-title" size={24} />
                   <h2>Şirket Profili</h2>
                 </div>
                 <div className="card-body">
@@ -113,17 +208,28 @@ export default function SettingsPage() {
                     <span className="info-label">Mevcut Plan</span>
                     <span className="info-val plan-badge">{company.plan.toUpperCase()}</span>
                   </div>
-                  <div className="info-row">
-                    <span className="info-label">Durum</span>
-                    <span className="info-val">
-                      {company.status === "active" ? (
-                        <span style={{ color: "var(--success-text)", display: "flex", alignItems: "center", gap: "5px" }}>
-                          <CheckCircle size={16} /> Aktif
-                        </span>
-                      ) : (
-                        <span style={{ color: "var(--danger-text)" }}>{company.status}</span>
-                      )}
-                    </span>
+                  
+                  <div className="logo-management" style={{ marginTop: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.5rem' }}>
+                    <label className="info-label" style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 600, color: 'white' }}>Şirket Logosu (URL)</label>
+                    <div className="flex" style={{ gap: '0.5rem' }}>
+                      <input 
+                        type="text" 
+                        className="glass-input" 
+                        value={logoInput} 
+                        onChange={(e) => setLogoInput(e.target.value)}
+                        placeholder="https://example.com/logo.png"
+                        style={{ flex: 1 }}
+                      />
+                      <button className="btn-primary" onClick={handleUpdateLogo} disabled={isSaving}>
+                        {isSaving ? <Loader2 className="animate-spin" size={16}/> : 'Kaydet'}
+                      </button>
+                    </div>
+                    {company.logo_url && (
+                        <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+                            <p className="info-label">Önizleme:</p>
+                            <img src={company.logo_url} alt="Logo" style={{ maxHeight: '60px', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.1)' }} />
+                        </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -135,208 +241,104 @@ export default function SettingsPage() {
                   <h2>Kota Kullanımı</h2>
                 </div>
                 <div className="card-body">
-                  
-                  {/* Account Quota */}
                   <div className="quota-block">
                     <div className="quota-header">
-                      <span className="quota-title">Instagram Hesap Limiti</span>
+                      <span className="quota-title">Hesap Limiti</span>
                       <span className="quota-numbers">{company.used_accounts} / {company.max_accounts}</span>
                     </div>
-                    <div className="progress-bar-bg">
-                      <div 
-                        className="progress-bar-fill" 
-                        style={{ 
-                          width: `${Math.min(100, (company.used_accounts / Math.max(1, company.max_accounts)) * 100)}%`,
-                          background: company.used_accounts >= company.max_accounts ? "var(--danger-bg)" : "var(--primary-color)"
-                        }} 
-                      />
-                    </div>
-                    <p className="quota-desc">Bağlayabileceğiniz maksimum Instagram hesabı sayısı.</p>
+                    <div className="progress-bar-bg"><div className="progress-bar-fill" style={{ width: `${(company.used_accounts / company.max_accounts) * 100}%`, background: 'var(--primary-color)' }} /></div>
                   </div>
-
-                  {/* Reply Quota */}
                   <div className="quota-block">
                     <div className="quota-header">
-                      <span className="quota-title">Günlük AI Yanıt Limiti</span>
+                      <span className="quota-title">Günlük Yanıt Limiti</span>
                       <span className="quota-numbers">{company.used_replies_today} / {company.daily_reply_limit}</span>
                     </div>
-                    <div className="progress-bar-bg">
-                      <div 
-                        className="progress-bar-fill" 
-                        style={{ 
-                          width: `${Math.min(100, (company.used_replies_today / Math.max(1, company.daily_reply_limit)) * 100)}%`,
-                          background: company.used_replies_today >= company.daily_reply_limit ? "var(--danger-bg)" : "var(--success-text)"
-                        }} 
-                      />
+                    <div className="progress-bar-bg"><div className="progress-bar-fill" style={{ width: `${(company.used_replies_today / company.daily_reply_limit) * 100}%`, background: 'var(--success-text)' }} /></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* System Admin Card (Owner Only) */}
+              {userRole === 'owner' && (
+                <div className="glass-card settings-card">
+                  <div className="card-header">
+                    <Lock className="icon-title" size={24} />
+                    <h2>Sistem Yönetimi</h2>
+                  </div>
+                  <div className="card-body">
+                    <p className="info-desc">Yeni bir emlak ofisi (şirket) tanımlayın.</p>
+                    <div className="flex flex-col" style={{ gap: '0.5rem', marginTop: '1rem' }}>
+                        <input 
+                            type="text" 
+                            className="glass-input" 
+                            placeholder="Yeni Ofis / Şirket Adı"
+                            value={newOfficeName}
+                            onChange={(e) => setNewOfficeName(e.target.value)}
+                        />
+                        <button className="btn-primary w-full" onClick={handleCreateOffice} disabled={isCreatingOffice}>
+                            {isCreatingOffice ? <Loader2 className="animate-spin" size={16}/> : 'Yeni Ofis Oluştur'}
+                        </button>
                     </div>
-                    <p className="quota-desc">Bugün oluşturulan otomatik yanıt sayısı (Gece 00:00'da sıfırlanır).</p>
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Engine Card */}
-              <div className="glass-card settings-card">
-                <div className="card-header">
-                  <Settings className="icon-title" size={24} />
-                  <h2>Yapay Zeka Motoru</h2>
-                </div>
-                <div className="card-body">
-                  <div className="info-row">
-                    <span className="info-label">Aktif Model</span>
-                    <span className="info-val">{company.ai_model_tier}</span>
+              {/* Team / Users Card */}
+              {(userRole === 'owner' || userRole === 'admin') && (
+                <div className="glass-card settings-card" style={{ gridColumn: '1 / -1' }}>
+                  <div className="card-header">
+                    <Users className="icon-title" size={24} />
+                    <h2>Ekip Yönetimi</h2>
                   </div>
-                  <p className="info-desc" style={{ marginTop: '1rem', color: 'var(--text-secondary)' }}>
-                    Bu model, planınıza uygun olarak tahsis edilmiştir. Pro veya Enterprise paketlerde daha yetenekli motorlar kullanılır.
-                  </p>
+                  <div className="card-body">
+                    <p className="info-desc">
+                        {userRole === 'owner' ? 'Sistem sahibi olarak bu ofisin yöneticilerini ve çalışanlarını tanımlayabilirsiniz.' : 'Admin olarak ofisinize yeni çalışanlar ekleyebilirsiniz.'}
+                    </p>
+                    <div className="flex" style={{ marginTop: '1rem' }}>
+                         <Link href="/users" className="btn-secondary flex items-center" style={{ gap: '0.5rem' }}>
+                            <Users size={16} /> Kullanıcıları Yönet
+                         </Link>
+                    </div>
+                  </div>
                 </div>
-              </div>
-
-              {/* Upgrade Banner */}
-              <div className="upgrade-banner">
-                <div className="upgrade-content">
-                  <h3>Limitlere mi takıldınız?</h3>
-                  <p>Pro planına geçerek limitsiz hesap ve günde 1000 yanıt kapasitesine ulaşın.</p>
-                </div>
-                <button className="btn-primary" onClick={() => alert("Faturalandırma modülü yakında eklenecektir!")}>
-                  Hemen Yükselt
-                </button>
-              </div>
-
+              )}
             </div>
           )}
         </div>
       </main>
 
       <style jsx>{`
-        .content-area {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          position: relative;
-          z-index: 10;
-        }
-        .page-content {
-          padding: 2rem;
-        }
-        .settings-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 1.5rem;
-          align-items: start;
-        }
-        .settings-card {
-          padding: 1.5rem;
-          display: flex;
-          flex-direction: column;
-          gap: 1.5rem;
-        }
-        .card-header {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-          padding-bottom: 1rem;
-        }
-        .card-header h2 {
-          font-size: 1.25rem;
-          font-weight: 600;
-          color: white;
-          margin: 0;
-        }
-        .icon-title {
-          color: var(--primary-color);
-        }
-        .info-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 0.75rem 0;
-          border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
-        }
-        .info-row:last-child {
-          border-bottom: none;
-        }
-        .info-label {
-          color: var(--text-secondary);
-          font-size: 0.95rem;
-        }
-        .info-val {
-          color: white;
-        }
-        .plan-badge {
-          background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
-          padding: 2px 10px;
-          border-radius: 12px;
-          font-size: 0.8rem;
-          font-weight: 700;
-          letter-spacing: 0.5px;
-          box-shadow: 0 2px 10px rgba(79, 70, 229, 0.3);
-        }
-        .quota-block {
-          margin-bottom: 2rem;
-        }
-        .quota-block:last-child {
-          margin-bottom: 0;
-        }
-        .quota-header {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 0.5rem;
-        }
-        .quota-title {
-          font-weight: 500;
-          color: white;
-        }
-        .quota-numbers {
-          font-family: monospace;
-          color: var(--text-secondary);
-        }
-        .progress-bar-bg {
-          width: 100%;
-          height: 8px;
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 4px;
-          overflow: hidden;
-          margin-bottom: 0.5rem;
-        }
-        .progress-bar-fill {
-          height: 100%;
-          border-radius: 4px;
-          transition: width 0.5s ease;
-        }
-        .quota-desc {
-          font-size: 0.85rem;
-          color: var(--text-secondary);
-        }
-        .upgrade-banner {
-          grid-column: 1 / -1;
-          background: linear-gradient(to right, rgba(79, 70, 229, 0.1), rgba(168, 85, 247, 0.1));
-          border: 1px solid rgba(79, 70, 229, 0.3);
-          border-radius: 16px;
-          padding: 2rem;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-        }
-        .upgrade-content h3 {
-          color: white;
-          font-size: 1.25rem;
-          margin-bottom: 0.5rem;
-        }
-        .upgrade-content p {
-          color: var(--text-secondary);
-        }
+        .page-title { font-size: 1.5rem; font-weight: 700; color: #0f172a !important; margin: 0; }
+        .page-subtitle { color: #64748b !important; font-size: 0.9rem; margin-top: 2px; }
+        .header-section { margin-bottom: 2rem; }
+        
+        .company-switcher-wrapper { display: flex; align-items: center; gap: 0.75rem; background: rgba(0,0,0,0.05); padding: 5px 12px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); }
+        .glass-select { background: transparent; border: none; color: #0f172a; font-size: 0.9rem; font-weight: 600; outline: none; cursor: pointer; padding: 5px; }
+        .glass-select option { background: white; color: #0f172a; }
+        .owner-badge { background: #0f172a; color: white; padding: 2px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.5px; }
+
+        .content-area { flex: 1; display: flex; flex-direction: column; position: relative; z-index: 10; }
+        .page-content { padding: 2rem; }
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start; }
+        .settings-card { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
+        .card-header { display: flex; align-items: center; gap: 0.75rem; border-bottom: 1px solid rgba(0, 0, 0, 0.1); padding-bottom: 1rem; }
+        .card-header h2 { font-size: 1.25rem; font-weight: 600; color: #1e293b !important; margin: 0; }
+        .info-row { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px dashed rgba(0, 0, 0, 0.1) !important; }
+        .info-label { color: #64748b !important; font-size: 0.95rem; }
+        .info-val { color: #1e293b !important; font-weight: 600; }
+        .plan-badge { background: #0f172a; color: white; padding: 2px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 700; }
+        .quota-block { margin-bottom: 1.5rem; }
+        .quota-header { display: flex; justify-content: space-between; margin-bottom: 0.5rem; }
+        .quota-title { color: #1e293b; font-size: 0.9rem; font-weight: 600; }
+        .quota-numbers { font-family: monospace; color: #64748b; }
+        .progress-bar-bg { width: 100%; height: 6px; background: rgba(0, 0, 0, 0.05); border-radius: 3px; overflow: hidden; }
+        .progress-bar-fill { height: 100%; transition: width 0.5s ease; }
+        .glass-input { background: white; border: 1px solid rgba(0, 0, 0, 0.1); color: #1e293b; padding: 8px 12px; border-radius: 8px; outline: none; transition: 0.2s; }
+        .glass-input:focus { border-color: var(--primary-color); background: #f8fafc; }
+        .info-desc { color: #64748b; font-size: 0.9rem; line-height: 1.5; }
         
         @media (max-width: 768px) {
-          .settings-grid {
-            grid-template-columns: 1fr;
-          }
-          .upgrade-banner {
-            flex-direction: column;
-            text-align: center;
-            gap: 1.5rem;
-          }
+          .settings-grid { grid-template-columns: 1fr; }
         }
       `}</style>
     </div>
