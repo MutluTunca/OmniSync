@@ -640,6 +640,8 @@ def send_reply(reply_id: str) -> dict[str, str]:
             comment.status = "replied"
             comment.updated_at = datetime.now(timezone.utc)
         except Exception as exc:
+            import logging
+            logging.error(f"Failed to send reply via Meta API: {exc}")
             reply.status = "failed"
             reply.failure_reason = str(exc)
             comment.status = "failed"

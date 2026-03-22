@@ -54,7 +54,10 @@ class MetaGraphClient:
             data={"message": message, "access_token": access_token},
             timeout=20,
         )
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as e:
+            raise Exception(f"Meta Graph API Error: {response.text}") from e
         return response.json()
 
     def fetch_recent_media(self, ig_user_id: str, access_token: str, limit: int = 10) -> dict:

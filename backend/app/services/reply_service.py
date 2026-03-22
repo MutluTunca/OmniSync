@@ -85,15 +85,18 @@ def generate_reply(
             avoid_block = "\n".join(f"- {x}" for x in (recent_replies or [])[:5]) or "- yok"
             
             prompt_parts = [
-                "Turkce, samimi ve profesyonel tek bir emlak yaniti yaz. "
-                "Maksimum 240 karakter. Spam gibi olmasin. "
-                "Ayni kalibi tekrar etme, her cevapta farkli ifade kullan.\n\n"
-                f"Yorum: {comment_text}\n"
-                f"Intent: {intent}\n"
-                f"Taslak: {draft}\n"
-                f"Post Aciklamasi: {media_caption or 'yok'}\n"
-                f"Tekrar etme listesi:\n{avoid_block}\n"
-                "Yanitta DM'e yonlendiren kisa bir cagirida bulun."
+            prompt_parts = [
+                "Sen profesyonel, sıcakkanlı ve ikna edici bir gayrimenkul danışmanısın. "
+                "kKullanıcının emlak yorumuna Türkçe, samimi ve güven veren bir yanıt yaz. "
+                "Maksimum 240 karakter. Asla robotik veya spam gibi görünmesin. "
+                "Aşağıdaki 'Taslak' (Draft) sadece sana konuyu belirtmek için verilmiştir, asıl yanıtı YARATICI BİR ŞEKİLDE kendin baştan yaz! "
+                "Taslağı birebir kopyalamaktan kesinlikle kaçın. Her seferinde kelimeleri ve yapıyı değiştir.\n\n"
+                f"Kullanıcı Yorumu: {comment_text}\n"
+                f"Niyet (Intent): {intent}\n"
+                f"Örnek Taslak (Sadece Fikir Vermesi İçin): {draft}\n"
+                f"İlan Açıklaması: {media_caption or 'yok'}\n"
+                f"Geçmiş Yanıtların (Bunlara benzer şeyler GİRME):\n{avoid_block}\n"
+                "Yanıtının sonunda kullanıcıyı DM'e yönlendiren kısa ve nazik bir ifade (Call-to-Action) bulunsun."
             ]
             
             if media_url:
