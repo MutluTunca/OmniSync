@@ -39,9 +39,9 @@ export default function LoginPage() {
       const data = await response.json();
       
       // Store tokens
-      localStorage.setItem("access_token", data.access_token);
-      localStorage.setItem("refresh_token", data.refresh_token);
-      localStorage.setItem("token_type", data.token_type);
+      localStorage.setItem("omnisync_access_token", data.access_token);
+      localStorage.setItem("omnisync_refresh_token", data.refresh_token);
+      localStorage.setItem("omnisync_token_type", data.token_type);
 
       // Redirect to dashboard
       router.push("/");
