@@ -111,7 +111,9 @@ def generate_reply(
             response = model.generate_content(prompt_parts)
             text = (response.text or draft).strip()
             return text[:240]
-        except Exception:
+        except Exception as e:
+            import logging
+            logging.error(f"Gemini Reply Error: {e}", exc_info=True)
             return _fallback_reply(intent=intent, username=username)
 
     # OpenAI Logic

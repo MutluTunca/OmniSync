@@ -60,7 +60,9 @@ def classify_intent(text: str) -> tuple[str, float, bool, str]:
             if intent not in INTENT_LABELS:
                 return heuristic_intent, heuristic_conf, False, "fallback_invalid_label"
             return intent, max(0.0, min(confidence, 1.0)), is_sensitive, reason
-        except Exception:
+        except Exception as e:
+            import logging
+            logging.error(f"Gemini Intent Error: {e}", exc_info=True)
             return heuristic_intent, heuristic_conf, False, "fallback_exception_gemini"
 
     # OpenAI Logic
