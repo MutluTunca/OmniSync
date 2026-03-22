@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { MessageSquare, CheckCircle, Clock, Cpu, RefreshCw, Search, ListFilter } from "lucide-react";
+import { MessageSquare, CheckCircle, Clock, Cpu, RefreshCw, Search, ListFilter, ArrowRight } from "lucide-react";
 
 type ReplyItem = {
   id: string;
@@ -270,234 +270,322 @@ export default function CommentsPage() {
   }, [token]);
 
   return (
-    <main className="container">
-      <div className="topbar">
-        <div>
-          <h1>Yorum Merkezi</h1>
-          <p>Tüm Instagram yorumlarını ve AI yanıtlarını buradan takip edebilirsiniz.</p>
-        </div>
-        <div className="actions" style={{ display: 'flex', gap: '12px' }}>
-          <button className="btn-secondary" onClick={loadComments} disabled={loading || busyId !== null} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-            Yenile
-          </button>
-          <button className="btn-primary" onClick={triggerPollNow} disabled={busyId !== null} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Search size={16} />
-            {busyId === "poll" ? "Kontrol Ediliyor..." : "Yorumları Kontrol Et"}
-          </button>
-        </div>
+    <div className="dashboard-wrapper">
+      <div className="dashboard-background">
+        <div className="blob blob-1"></div>
+        <div className="blob blob-2"></div>
       </div>
 
-      <section className="stats-grid">
-        <article className="stat-card">
-          <span><MessageSquare size={18} color="var(--primary)" /> Toplam</span>
-          <strong>{stats.total}</strong>
-        </article>
-        <article className="stat-card">
-          <span><CheckCircle size={18} color="#10b981" /> Yanıtlanan</span>
-          <strong>{stats.replied}</strong>
-        </article>
-        <article className="stat-card">
-          <span><Clock size={18} color="#f59e0b" /> Bekleyen</span>
-          <strong>{stats.pending}</strong>
-        </article>
-        <article className="stat-card">
-          <span><Cpu size={18} color="#6366f1" /> Yanıt Üretilen</span>
-          <strong>{stats.withReply}</strong>
-        </article>
-      </section>
+      <main className="container dashboard-content">
+        <header className="topbar">
+          <div>
+            <h1>Yorum Merkezi</h1>
+            <p>Yapay zeka ile güçlendirilmiş etkileşim yönetimi.</p>
+          </div>
+          <div className="actions" style={{ display: 'flex', gap: '12px' }}>
+            <button className="btn-secondary" onClick={loadComments} disabled={loading || busyId !== null} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+              Yenile
+            </button>
+            <button className="btn-primary" onClick={triggerPollNow} disabled={busyId !== null} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Search size={16} />
+              {busyId === "poll" ? "Kontrol Ediliyor..." : "Yorumları Kontrol Et"}
+            </button>
+          </div>
+        </header>
 
-      <section className="filters-panel">
-        <div className="quick-tabs" role="tablist" aria-label="Hazir gorunumler">
-          <button className={`chip ${quickView === "all" ? "chip-active" : ""}`} onClick={() => setQuickView("all")}>
-            Tumu
-          </button>
-          <button className={`chip ${quickView === "action" ? "chip-active" : ""}`} onClick={() => setQuickView("action")}>
-            Aksiyon Gerekli
-          </button>
-          <button className={`chip ${quickView === "today" ? "chip-active" : ""}`} onClick={() => setQuickView("today")}>
-            Bugun Gelenler
-          </button>
-          <button className={`chip ${quickView === "replied" ? "chip-active" : ""}`} onClick={() => setQuickView("replied")}>
-            Yanitlananlar
-          </button>
-          <button className={`chip ${quickView === "sensitive" ? "chip-active" : ""}`} onClick={() => setQuickView("sensitive")}>
-            Hassaslar
-          </button>
-          <button className={`chip ${quickView === "pricing" ? "chip-active" : ""}`} onClick={() => setQuickView("pricing")}>
-            Fiyat Soranlar
-          </button>
-          <button className={`chip ${quickView === "critical" ? "chip-active" : ""}`} onClick={() => setQuickView("critical")}>
-            Sikayet/Kritik
-          </button>
-        </div>
+        <section className="stats-grid">
+          <article className="stat-card glass-card">
+            <span><MessageSquare size={18} color="var(--primary)" /> Toplam</span>
+            <strong>{stats.total}</strong>
+          </article>
+          <article className="stat-card glass-card">
+            <span><CheckCircle size={18} color="#10b981" /> Yanıtlanan</span>
+            <strong>{stats.replied}</strong>
+          </article>
+          <article className="stat-card glass-card">
+            <span><Clock size={18} color="#f59e0b" /> Bekleyen</span>
+            <strong>{stats.pending}</strong>
+          </article>
+          <article className="stat-card glass-card">
+            <span><Cpu size={18} color="#6366f1" /> Yanıt Üretilen</span>
+            <strong>{stats.withReply}</strong>
+          </article>
+        </section>
 
-        <div className="filters-grid">
-          <label>
-            Ara
-            <input
-              className="input"
-              placeholder="yorum, @kullanici, media id"
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-            />
-          </label>
+        <section className="filters-panel glass-card">
+          <div className="quick-tabs" role="tablist" aria-label="Hazir gorunumler">
+            <button className={`chip ${quickView === "all" ? "chip-active" : ""}`} onClick={() => setQuickView("all")}>
+              Tümü
+            </button>
+            <button className={`chip ${quickView === "action" ? "chip-active" : ""}`} onClick={() => setQuickView("action")}>
+              Aksiyon Gerekli
+            </button>
+            <button className={`chip ${quickView === "today" ? "chip-active" : ""}`} onClick={() => setQuickView("today")}>
+              Bugün Gelenler
+            </button>
+            <button className={`chip ${quickView === "replied" ? "chip-active" : ""}`} onClick={() => setQuickView("replied")}>
+              Yanıtlananlar
+            </button>
+            <button className={`chip ${quickView === "sensitive" ? "chip-active" : ""}`} onClick={() => setQuickView("sensitive")}>
+              Hassaslar
+            </button>
+            <button className={`chip ${quickView === "pricing" ? "chip-active" : ""}`} onClick={() => setQuickView("pricing")}>
+              Fiyat Soranlar
+            </button>
+            <button className={`chip ${quickView === "critical" ? "chip-active" : ""}`} onClick={() => setQuickView("critical")}>
+              Şikayet/Kritik
+            </button>
+          </div>
 
-          <label>
-            Durum
-            <select className="input" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              {STATUS_OPTIONS.map((x) => (
-                <option key={x} value={x}>
-                  {statusLabel(x)}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="filters-grid">
+            <label>
+              Ara
+              <input
+                className="input"
+                placeholder="yorum, @kullanici, media id"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+              />
+            </label>
 
-          <label>
-            Intent
-            <select className="input" value={intentFilter} onChange={(e) => setIntentFilter(e.target.value)}>
-              <option value="all">Tum intentler</option>
-              {intentOptions.map((x) => (
-                <option key={x} value={x}>
-                  {x}
-                </option>
-              ))}
-            </select>
-          </label>
+            <label>
+              Durum
+              <select className="input" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                {STATUS_OPTIONS.map((x) => (
+                  <option key={x} value={x}>
+                    {statusLabel(x)}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <label>
-            Yanit
-            <select className="input" value={replyFilter} onChange={(e) => setReplyFilter(e.target.value)}>
-              <option value="all">Hepsi</option>
-              <option value="with">Yanit var</option>
-              <option value="without">Yanit yok</option>
-            </select>
-          </label>
+            <label>
+              Intent
+              <select className="input" value={intentFilter} onChange={(e) => setIntentFilter(e.target.value)}>
+                <option value="all">Tüm intentler</option>
+                {intentOptions.map((x) => (
+                  <option key={x} value={x}>
+                    {x}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <label>
-            Tarih
-            <select className="input" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)}>
-              <option value="all">Tum zamanlar</option>
-              <option value="today">Bugun</option>
-              <option value="7d">Son 7 gun</option>
-            </select>
-          </label>
+            <label>
+              Yanıt
+              <select className="input" value={replyFilter} onChange={(e) => setReplyFilter(e.target.value)}>
+                <option value="all">Hepsi</option>
+                <option value="with">Yanıt var</option>
+                <option value="without">Yanıt yok</option>
+              </select>
+            </label>
 
-          <label>
-            Sayfa boyutu
-            <select className="input" value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))}>
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
-          </label>
-        </div>
+            <label>
+              Tarih
+              <select className="input" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)}>
+                <option value="all">Tüm zamanlar</option>
+                <option value="today">Bugün</option>
+                <option value="7d">Son 7 gün</option>
+              </select>
+            </label>
 
-        <div className="filters-foot">
-          <small className="subtle">
-            Gosterilen {pagedItems.length} / {filteredItems.length} (Toplam: {items.length})
-          </small>
-          <button className="btn-secondary" onClick={resetFilters} disabled={loading || busyId !== null}>
-            Filtreleri Temizle
-          </button>
-        </div>
-      </section>
+            <label>
+              Sayfa boyutu
+              <select className="input" value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))}>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </label>
+          </div>
 
-      {message ? <p className="notice">{message}</p> : null}
+          <div className="filters-foot">
+            <small className="subtle">
+              Gösterilen {pagedItems.length} / {filteredItems.length} (Toplam: {items.length})
+            </small>
+            <button className="btn-secondary" onClick={resetFilters} disabled={loading || busyId !== null}>
+              Filtreleri Temizle
+            </button>
+          </div>
+        </section>
 
-      <section className="table-wrap">
-        <table className="comments-table">
-          <thead>
-            <tr>
-              <th>Yorum</th>
-              <th>Paylasim</th>
-              <th>Intent</th>
-              <th>Durum</th>
-              <th>AI Yanit</th>
-              <th>Zaman</th>
-              <th>Islem</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
+        {message ? <p className="notice">{message}</p> : null}
+
+        <section className="table-wrap glass-card">
+          <table className="comments-table">
+            <thead>
               <tr>
-                <td colSpan={7}>Yukleniyor...</td>
+                <th>Yorum</th>
+                <th>Paylaşım</th>
+                <th>Intent</th>
+                <th>Durum</th>
+                <th>AI Yanıt</th>
+                <th>Zaman</th>
+                <th>İşlem</th>
               </tr>
-            ) : pagedItems.length === 0 ? (
-              <tr>
-                <td colSpan={7}>Filtreye uygun yorum bulunamadi.</td>
-              </tr>
-            ) : (
-              pagedItems.map((item) => (
-                <tr key={item.id}>
-                  <td>
-                    {item.commenter_username ? <small className="subtle">@{item.commenter_username}</small> : null}
-                    {item.text}
-                  </td>
-                  <td>
-                    <span className="badge">{item.post.media_type ?? "POST"}</span>
-                    <small className="subtle">Media ID: {item.post.ig_media_id}</small>
-                    <small className="subtle">Yayin: {formatDate(item.post.posted_at)}</small>
-                    {item.post.caption_text ? <small className="subtle">{truncateText(item.post.caption_text, 90)}</small> : null}
-                  </td>
-                  <td>
-                    <span className="badge">{item.intent ?? "-"}</span>
-                    {item.intent_confidence !== null ? <small className="subtle">%{Math.round(item.intent_confidence * 100)}</small> : null}
-                  </td>
-                  <td>
-                    <span className={`badge badge-${item.status}`}>{statusLabel(item.status)}</span>
-                    {item.reply ? <small className="subtle">Reply: {statusLabel(item.reply.status)}</small> : null}
-                  </td>
-                  <td>{item.reply?.final_text ?? item.reply?.draft_text ?? "Henuz yok"}</td>
-                  <td>
-                    <small className="subtle">Yorum: {formatDate(item.received_at)}</small>
-                    <small className="subtle">Reply: {formatDate(item.reply?.sent_at ?? null)}</small>
-                  </td>
-                  <td>
-                    <div className="row-actions">
-                      <button className="btn-secondary" onClick={() => generateReply(item.id)} disabled={busyId === item.id}>
-                        Yanit Uret
-                      </button>
-                      {item.reply?.final_text ? (
-                        <button
-                          className="btn-primary"
-                          onClick={() => sendReplyNow(item)}
-                          disabled={busyId === item.id || item.reply.status === "sent"}
-                        >
-                          {item.reply.status === "sent" ? "Gonderildi" : "Hemen Gonder"}
-                        </button>
-                      ) : null}
-                    </div>
-                  </td>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={7}>Yükleniyor...</td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </section>
+              ) : pagedItems.length === 0 ? (
+                <tr>
+                  <td colSpan={7}>Filtreye uygun yorum bulunamadı.</td>
+                </tr>
+              ) : (
+                pagedItems.map((item) => (
+                  <tr key={item.id}>
+                    <td>
+                      {item.commenter_username ? <small className="subtle">@{item.commenter_username}</small> : null}
+                      <div style={{ fontSize: '0.95rem', fontWeight: 500 }}>{item.text}</div>
+                    </td>
+                    <td>
+                      <span className="badge">{item.post.media_type ?? "POST"}</span>
+                      <small className="subtle">Media ID: {item.post.ig_media_id}</small>
+                      {item.post.caption_text ? <small className="subtle">{truncateText(item.post.caption_text, 60)}</small> : null}
+                    </td>
+                    <td>
+                      <span className="badge" style={{ background: 'var(--accent-soft)', color: 'var(--primary)' }}>{item.intent ?? "-"}</span>
+                      {item.intent_confidence !== null ? <small className="subtle">%{Math.round(item.intent_confidence * 100)}</small> : null}
+                    </td>
+                    <td>
+                      <span className={`badge badge-${item.status}`}>{statusLabel(item.status)}</span>
+                    </td>
+                    <td>
+                      <div style={{ maxWidth: '200px', fontSize: '0.85rem' }}>
+                        {item.reply?.final_text ?? item.reply?.draft_text ?? <span className="subtle">Henüz yok</span>}
+                      </div>
+                    </td>
+                    <td>
+                      <small className="subtle">Yorum: {formatDate(item.received_at)}</small>
+                    </td>
+                    <td>
+                      <div className="row-actions">
+                        <button className="btn-secondary" onClick={() => generateReply(item.id)} disabled={busyId === item.id} style={{ padding: '8px 12px' }}>
+                          Yanıt Üret
+                        </button>
+                        {item.reply?.final_text ? (
+                          <button
+                            className="btn-primary"
+                            onClick={() => sendReplyNow(item)}
+                            disabled={busyId === item.id || item.reply.status === "sent"}
+                            style={{ padding: '8px 12px' }}
+                          >
+                            {item.reply.status === "sent" ? "Gönderildi" : "Onayla"}
+                          </button>
+                        ) : null}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </section>
 
-      <div className="pagination-row">
-        <small className="subtle">
-          Sayfa {currentPage} / {totalPages}
-        </small>
-        <div className="row-actions">
-          <button className="btn-secondary" onClick={() => setPage((x) => Math.max(1, x - 1))} disabled={currentPage <= 1}>
-            Onceki
-          </button>
-          <button
-            className="btn-secondary"
-            onClick={() => setPage((x) => Math.min(totalPages, x + 1))}
-            disabled={currentPage >= totalPages}
-          >
-            Sonraki
-          </button>
+        <div className="pagination-row">
+          <small className="subtle">
+            Sayfa {currentPage} / {totalPages}
+          </small>
+          <div className="row-actions">
+            <button className="btn-secondary" onClick={() => setPage((x) => Math.max(1, x - 1))} disabled={currentPage <= 1}>
+              Önceki
+            </button>
+            <button
+              className="btn-secondary"
+              onClick={() => setPage((x) => Math.min(totalPages, x + 1))}
+              disabled={currentPage >= totalPages}
+            >
+              Sonraki
+            </button>
+          </div>
         </div>
-      </div>
 
-      <Link className="link" href="/">
-        Ana sayfaya don
-      </Link>
-    </main>
+        <Link className="link" href="/" style={{ marginBottom: '40px' }}>
+          <ArrowRight size={18} style={{ transform: 'rotate(180deg)', marginRight: '8px' }} />
+          Ana sayfaya dön
+        </Link>
+      </main>
+
+      <style jsx>{`
+        .dashboard-wrapper {
+          min-height: 100vh;
+          background: #f8fafc;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .dashboard-background {
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          z-index: 0;
+        }
+
+        .blob {
+          position: absolute;
+          border-radius: 50%;
+          filter: blur(100px);
+          opacity: 0.2;
+        }
+
+        .blob-1 {
+          width: 500px;
+          height: 500px;
+          background: #6366f1;
+          top: -100px;
+          left: -100px;
+        }
+
+        .blob-2 {
+          width: 400px;
+          height: 400px;
+          background: #818cf8;
+          bottom: -100px;
+          right: -100px;
+        }
+
+        .dashboard-content {
+          position: relative;
+          z-index: 10;
+        }
+
+        .topbar {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 40px;
+          padding-bottom: 24px;
+          border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .glass-card {
+          background: rgba(255, 255, 255, 0.7) !important;
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.4) !important;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05) !important;
+        }
+
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+          .topbar {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 20px;
+          }
+        }
+      `}</style>
+    </div>
   );
 }
