@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 const API_BASE = "";
 
-
-export default function InstagramConnectPage() {
+function ConnectContent() {
   const params = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -55,3 +54,12 @@ export default function InstagramConnectPage() {
     </main>
   );
 }
+
+export default function InstagramConnectPage() {
+  return (
+    <Suspense fallback={<main className="container"><p>Yükleniyor...</p></main>}>
+      <ConnectContent />
+    </Suspense>
+  );
+}
+
