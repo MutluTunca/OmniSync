@@ -57,6 +57,7 @@ def _effective_company_token(company: Company, accounts: list[InstagramAccount])
     return None, None
 
 
+@router.get("/accounts")
 def list_accounts(
     current_user: User = Depends(RoleChecker("owner", "admin", "manager", "operator", "agent")),
     active_company_id: UUID = Depends(get_active_company_id),
@@ -83,6 +84,7 @@ def list_accounts(
     }
 
 
+@router.get("/token-health")
 def token_health(
     current_user: User = Depends(RoleChecker("owner", "admin", "manager", "operator", "agent")),
     active_company_id: UUID = Depends(get_active_company_id),
