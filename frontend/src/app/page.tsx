@@ -10,7 +10,8 @@ import {
   Activity, 
   Cpu, 
   Loader2, 
-  ArrowRight 
+  ArrowRight,
+  Settings
 } from "lucide-react";
 
 type TokenHealthSummary = {
@@ -227,6 +228,17 @@ export default function HomePage() {
                 <p>{aiInfo ? `${aiInfo.provider.toUpperCase()} (${aiInfo.model})` : 'Modeller yükleniyor...'}</p>
               </div>
             </div>
+
+            {/* Ayarlar ve Paketim */}
+            <Link href="/settings" className="menu-card glass-card">
+              <div className="menu-card-image" style={{ background: "linear-gradient(135deg, #1f2937, #111827)" }}>
+                <Settings className="card-icon" size={40} />
+              </div>
+              <div className="menu-card-body">
+                <h3>Ayarlar & Paketim</h3>
+                <p>Şirket planınız ve uygulamadaki kotalarınızı görüntüleyin.</p>
+              </div>
+            </Link>
           </section>
         )}
       </main>
