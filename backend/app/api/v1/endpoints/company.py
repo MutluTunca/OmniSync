@@ -1,6 +1,8 @@
+import shutil
+import os
 from datetime import datetime, timezone
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
@@ -27,6 +29,44 @@ class UpdateCompanyRequest(BaseModel):
     plan: str | None = None
     max_accounts: int | None = None
     daily_reply_limit: int | None = None
+
+
+@router.post("/upload-logo")
+def upload_logo(
+    file: UploadFile = File(...),
+    current_user: User = Depends(RoleChecker("owner", "admin")),
+    active_company_id: UUID = Depends(get_active_company_id),
+    db: Session = Depends(get_db)
+) -> dict:
+    company = db.get(Company, active_company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+
+    # Validate file type
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File must be an image")
+
+    # Create directory if missing
+    upload_dir = "uploads/logos"
+    if not os.path.exists(upload_dir):
+        os.makedirs(upload_dir)
+
+    # Clean filename and save
+    file_ext = os.path.splitext(file.filename)[1]
+    filename = f"logo_{active_company_id}{file_ext}"
+    file_path = os.path.join(upload_dir, filename)
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    # Update logo_url in DB
+    # We use a relative URL that matches our StaticFiles mount
+    logo_url = f"/uploads/logos/{filename}"
+    company.logo_url = logo_url
+    db.add(company)
+    db.commit()
+
+    return {"status": "success", "logo_url": logo_url}
 
 
 @router.get("/me")
@@ -61,6 +101,7 @@ def get_my_company(
         "daily_reply_limit": company.daily_reply_limit,
         "used_replies_today": used_replies_today,
         "ai_model_tier": company.ai_model_tier,
+        "logo_url": company.logo_url,
     }
 
 @router.get("/list")

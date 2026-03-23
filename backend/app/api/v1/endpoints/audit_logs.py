@@ -14,6 +14,7 @@ router = APIRouter()
 @router.get("/")
 def list_logs(
     limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     current_user: User = Depends(RoleChecker("owner", "admin", "manager")),
     db: Session = Depends(get_db),
 ) -> dict:

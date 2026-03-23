@@ -85,7 +85,6 @@ def generate_reply(
             avoid_block = "\n".join(f"- {x}" for x in (recent_replies or [])[:5]) or "- yok"
             
             prompt_parts = [
-            prompt_parts = [
                 "Sen profesyonel, sıcakkanlı ve ikna edici bir gayrimenkul danışmanısın. "
                 "kKullanıcının emlak yorumuna Türkçe, samimi ve güven veren bir yanıt yaz. "
                 "Maksimum 240 karakter. Asla robotik veya spam gibi görünmesin. "

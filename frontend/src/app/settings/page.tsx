@@ -1,8 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle, AlertCircle, Loader2, Zap, Server, Settings, Building2, Lock, Users } from "lucide-react";
+import { 
+  Building2, 
+  Settings as SettingsIcon, 
+  MapPin, 
+  Globe, 
+  Shield, 
+  Zap, 
+  AlertCircle,
+  Loader2,
+  ArrowLeft,
+  Search,
+  CheckCircle2,
+  Lock,
+  Upload,
+  Image as ImageIcon,
+  Users
+} from "lucide-react";
 
 type CompanyDetails = {
   id: string;
@@ -23,58 +39,60 @@ const TOKEN_STORAGE_KEY = "omnisync_access_token";
 export default function SettingsPage() {
   const [company, setCompany] = useState<CompanyDetails | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [logoInput, setLogoInput] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [userRole, setUserRole] = useState("");
-  const [newOfficeName, setNewOfficeName] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
   const [isCreatingOffice, setIsCreatingOffice] = useState(false);
+  const [newOfficeName, setNewOfficeName] = useState("");
   const [allCompanies, setAllCompanies] = useState<{id: string, name: string}[]>([]);
+  const [userRole, setUserRole] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const loadData = async () => {
+    const token = window.localStorage.getItem(TOKEN_STORAGE_KEY);
+    const selectedCompanyId = window.localStorage.getItem("omnisync_selected_company_id");
+    
+    if (!token) {
+      setError("Oturum bulunamadı. Lütfen giriş yapın.");
+      setLoading(false);
+      return;
+    }
+
+    const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+    if (selectedCompanyId) {
+      headers["X-Company-ID"] = selectedCompanyId;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/company/me`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        setCompany(data);
+        setLogoInput(data.logo_url || "");
+      } else {
+        setError("Şirket bilgileri alınamadı.");
+      }
+
+      const decoded = JSON.parse(atob(token.split('.')[1]));
+      setUserRole(decoded.role);
+
+      if (decoded.role === 'owner') {
+        const listRes = await fetch(`${API_BASE}/api/v1/company/list`, { headers });
+        if (listRes.ok) {
+          setAllCompanies(await listRes.json());
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Bağlantı hatası.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchCompany = async () => {
-      const token = window.localStorage.getItem(TOKEN_STORAGE_KEY);
-      const selectedCompanyId = window.localStorage.getItem("omnisync_selected_company_id");
-      
-      if (!token) {
-        setError("Oturum bulunamadı. Lütfen giriş yapın.");
-        setLoading(false);
-        return;
-      }
-
-      const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
-      if (selectedCompanyId) {
-        headers["X-Company-ID"] = selectedCompanyId;
-      }
-
-      try {
-        const res = await fetch(`${API_BASE}/api/v1/company/me`, { headers });
-        if (res.ok) {
-          const data = await res.json();
-          setCompany(data);
-          setLogoInput(data.logo_url || "");
-        } else {
-          setError("Şirket bilgileri alınamadı.");
-        }
-
-        const decoded = JSON.parse(atob(token.split('.')[1]));
-        setUserRole(decoded.role);
-
-        // Fetch all companies if owner
-        if (decoded.role === 'owner') {
-          const listRes = await fetch(`${API_BASE}/api/v1/company/list`, { headers: { Authorization: `Bearer ${token}` } });
-          if (listRes.ok) {
-            setAllCompanies(await listRes.json());
-          }
-        }
-      } catch (err) {
-        console.error(err);
-        setError("Bağlantı hatası.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    void fetchCompany();
+    void loadData();
   }, []);
 
   const handleUpdateLogo = async () => {
@@ -98,7 +116,7 @@ export default function SettingsPage() {
       });
       if (res.ok) {
         alert("Logo başarıyla güncellendi!");
-        window.location.reload();
+        await loadData();
       } else {
         alert("Güncelleme sırasında hata oluştu.");
       }
@@ -106,6 +124,45 @@ export default function SettingsPage() {
       alert("Bağlantı hatası.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleUploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const token = window.localStorage.getItem(TOKEN_STORAGE_KEY);
+    const selectedCompanyId = window.localStorage.getItem("omnisync_selected_company_id");
+    
+    const headers: Record<string, string> = { 
+      'Authorization': `Bearer ${token}` 
+    };
+    if (selectedCompanyId) {
+      headers["X-Company-ID"] = selectedCompanyId;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/company/upload-logo`, {
+        method: 'POST',
+        headers,
+        body: formData
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLogoInput(data.logo_url);
+        await loadData();
+      } else {
+        const data = await res.json();
+        alert(data.detail || "Yükleme başarısız.");
+      }
+    } catch (e) {
+      alert("Dosya yüklenemedi.");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -219,6 +276,22 @@ export default function SettingsPage() {
                         onChange={(e) => setLogoInput(e.target.value)}
                         placeholder="https://example.com/logo.png"
                         style={{ flex: 1 }}
+                      />
+                      <button 
+                        className="btn-secondary" 
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading}
+                        title="PC'den Yükle"
+                        style={{ padding: '0 1rem' }}
+                      >
+                        {isUploading ? <Loader2 className="animate-spin" size={18}/> : <Upload size={18} />}
+                      </button>
+                      <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        onChange={handleUploadLogo} 
+                        style={{ display: 'none' }} 
+                        accept="image/*"
                       />
                       <button className="btn-primary" onClick={handleUpdateLogo} disabled={isSaving}>
                         {isSaving ? <Loader2 className="animate-spin" size={16}/> : 'Kaydet'}

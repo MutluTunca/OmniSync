@@ -1,6 +1,7 @@
-# CI Trigger: Auth refactor and disk cleanup
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.v1.router import api_router
 from app.core.config import settings
@@ -8,6 +9,14 @@ from app.db.bootstrap import bootstrap_owner
 
 
 app = FastAPI(title=settings.app_name, version="0.1.0")
+
+# Create uploads directory if not exists
+if not os.path.exists("uploads"):
+    os.makedirs("uploads")
+if not os.path.exists("uploads/logos"):
+    os.makedirs("uploads/logos")
+
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 app.add_middleware(
     CORSMiddleware,

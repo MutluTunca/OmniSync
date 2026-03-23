@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: omnisync_postgres_staging
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: omnisync
+      POSTGRES_DB: omnisync
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pg_data_staging:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: omnisync_redis_staging
+    restart: unless-stopped
+
+  backend:
+    image: ghcr.io/mutlutunca/omnisync-backend:latest
+    container_name: omnisync_backend_staging
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - postgres
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    ports:
+      - "8000:8000"
+    volumes:
+      - uploads_data:/app/uploads
+
+  worker:
+    image: ghcr.io/mutlutunca/omnisync-backend:latest
+    container_name: omnisync_worker_staging
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - backend
+      - redis
+      - postgres
+    command: celery -A app.workers.celery_app.celery_app worker -Q webhooks,ai,outbound --loglevel=info
+    volumes:
+      - uploads_data:/app/uploads
+
+  beat:
+    image: ghcr.io/mutlutunca/omnisync-backend:latest
+    container_name: omnisync_beat_staging
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - backend
+      - redis
+      - postgres
+    command: celery -A app.workers.celery_app.celery_app beat --loglevel=info
+
+  frontend:
+    image: ghcr.io/mutlutunca/omnisync-frontend:latest
+    container_name: omnisync_frontend_staging
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+
+volumes:
+  pg_data_staging:
+  uploads_data:
