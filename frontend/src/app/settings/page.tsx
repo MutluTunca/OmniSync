@@ -412,6 +412,12 @@ export default function SettingsPage() {
         
         @media (max-width: 768px) {
           .settings-grid { grid-template-columns: 1fr; }
+          .page-content { padding: 1rem; }
+          .settings-card { padding: 1rem; }
+          .info-row { flex-direction: column; align-items: flex-start; gap: 4px; }
+          .card-header h2 { font-size: 1rem; }
+          .topbar { flex-direction: column; align-items: flex-start; gap: 12px; }
+          .topbar h1 { font-size: 1.4rem; }
         }
       `}</style>
     </div>

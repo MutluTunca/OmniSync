@@ -342,6 +342,33 @@ export default function AnalyticsPage() {
             grid-template-columns: 1fr;
           }
         }
+        @media (max-width: 768px) {
+          .analytics-stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+          }
+          .stat-item {
+            padding: 1rem;
+            gap: 0.75rem;
+          }
+          .stat-item p {
+            font-size: 1.2rem;
+          }
+          .charts-main-grid {
+            grid-template-columns: 1fr;
+          }
+          .chart-wrapper-premium {
+            height: 220px;
+          }
+          .topbar {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+          }
+          .topbar h1 {
+            font-size: 1.4rem;
+          }
+        }
       `}</style>
     </div>
   );

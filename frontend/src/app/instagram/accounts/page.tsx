@@ -227,7 +227,17 @@ export default function AccountsPage() {
           .topbar {
             flex-direction: column;
             align-items: flex-start;
-            gap: 20px;
+            gap: 12px;
+          }
+          .topbar h1 {
+            font-size: 1.4rem;
+          }
+          .topbar-actions {
+            width: 100%;
+          }
+          .topbar-actions a {
+            display: block;
+            text-align: center;
           }
         }
       `}</style>

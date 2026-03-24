@@ -117,6 +117,14 @@ export default function LogsPage() {
       <Link className="link" href="/">
         Ana sayfaya don
       </Link>
+
+      <style jsx>{`
+        @media (max-width: 768px) {
+          .topbar { flex-direction: column; align-items: flex-start; gap: 10px; }
+          .topbar h1 { font-size: 1.4rem; }
+          .topbar button { width: 100%; }
+        }
+      `}</style>
     </main>
   );
 }

@@ -582,7 +582,49 @@ export default function CommentsPage() {
           .topbar {
             flex-direction: column;
             align-items: flex-start;
-            gap: 20px;
+            gap: 12px;
+          }
+          .topbar h1 {
+            font-size: 1.4rem;
+          }
+          .actions {
+            width: 100%;
+            flex-wrap: wrap;
+          }
+          .actions button {
+            flex: 1;
+            font-size: 0.8rem;
+            padding: 8px 10px;
+          }
+
+          /* Hide table header on mobile, show cards instead */
+          .comments-table thead { display: none; }
+          .comments-table tbody tr {
+            display: block;
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            padding: 12px;
+            background: white;
+          }
+          .comments-table tbody td {
+            display: block;
+            border: none;
+            padding: 4px 0;
+            font-size: 0.85rem;
+          }
+          .comments-table tbody td:before {
+            content: attr(data-label);
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: 2px;
+          }
+          .row-actions {
+            flex-wrap: wrap;
+            gap: 6px;
           }
         }
       `}</style>

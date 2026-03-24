@@ -477,7 +477,24 @@ export default function HomePage() {
           .topbar {
             flex-direction: column;
             align-items: flex-start;
-            gap: 20px;
+            gap: 16px;
+            margin-bottom: 24px;
+          }
+          .topbar-actions {
+            width: 100%;
+            flex-wrap: wrap;
+          }
+          .topbar h1 {
+            font-size: 1.4rem;
+          }
+          .chart-hero {
+            padding: 1rem !important;
+          }
+          .company-switcher-container {
+            width: 100%;
+          }
+          .glass-select {
+            width: 100%;
           }
         }
 
