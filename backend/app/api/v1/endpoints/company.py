@@ -61,7 +61,7 @@ def upload_logo(
 
     # Update logo_url in DB
     # We use a relative URL that matches our StaticFiles mount
-    logo_url = f"/uploads/logos/{filename}"
+    logo_url = f"/api/v1/uploads/logos/{filename}"
     company.logo_url = logo_url
     db.add(company)
     db.commit()

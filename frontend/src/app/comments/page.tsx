@@ -165,9 +165,15 @@ export default function CommentsPage() {
     if (!token) return;
     setLoading(true);
     try {
+      const selectedCompanyId = window.localStorage.getItem("omnisync_selected_company_id");
+      const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+      if (selectedCompanyId) {
+        headers["X-Company-ID"] = selectedCompanyId;
+      }
+
       const res = await fetch(`${API_BASE}/api/v1/comments?limit=200`, { 
         cache: "no-store",
-        headers: { Authorization: `Bearer ${token}` }
+        headers
       });
       if (!res.ok) throw new Error("Yorumlar alinamadi");
       const data: ApiResponse = await res.json();
@@ -184,9 +190,15 @@ export default function CommentsPage() {
     if (!token) return;
     setBusyId("poll");
     try {
+      const selectedCompanyId = window.localStorage.getItem("omnisync_selected_company_id");
+      const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+      if (selectedCompanyId) {
+        headers["X-Company-ID"] = selectedCompanyId;
+      }
+
       const res = await fetch(`${API_BASE}/api/v1/instagram/poll-now`, { 
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` }
+        headers
       });
       if (!res.ok) throw new Error();
       setMessage("Yorum kontrolu tetiklendi. Birkac saniye sonra liste yenilenir.");
@@ -204,12 +216,18 @@ export default function CommentsPage() {
     if (!token) return;
     setBusyId(commentId);
     try {
+      const selectedCompanyId = window.localStorage.getItem("omnisync_selected_company_id");
+      const headers: Record<string, string> = { 
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      };
+      if (selectedCompanyId) {
+        headers["X-Company-ID"] = selectedCompanyId;
+      }
+
       const res = await fetch(`${API_BASE}/api/v1/comments/${commentId}/generate-reply`, {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
+        headers,
         body: JSON.stringify({ force_regenerate: true })
       });
       if (!res.ok) throw new Error();
@@ -233,12 +251,18 @@ export default function CommentsPage() {
 
     setBusyId(item.id);
     try {
+      const selectedCompanyId = window.localStorage.getItem("omnisync_selected_company_id");
+      const headers: Record<string, string> = { 
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      };
+      if (selectedCompanyId) {
+        headers["X-Company-ID"] = selectedCompanyId;
+      }
+
       const res = await fetch(`${API_BASE}/api/v1/comments/${item.id}/approve-reply`, {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
+        headers,
         body: JSON.stringify({ final_text: item.reply.final_text, send_now: true })
       });
       if (!res.ok) throw new Error();

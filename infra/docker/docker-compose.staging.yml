@@ -29,6 +29,8 @@ services:
     command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     ports:
       - "8000:8000"
+    volumes:
+      - uploads_data:/app/uploads
 
   worker:
     image: ghcr.io/mutlutunca/omnisync-backend:latest
@@ -41,6 +43,8 @@ services:
       - redis
       - postgres
     command: celery -A app.workers.celery_app.celery_app worker -Q webhooks,ai,outbound --loglevel=info
+    volumes:
+      - uploads_data:/app/uploads
 
   beat:
     image: ghcr.io/mutlutunca/omnisync-backend:latest
@@ -53,6 +57,8 @@ services:
       - redis
       - postgres
     command: celery -A app.workers.celery_app.celery_app beat --loglevel=info
+    volumes:
+      - uploads_data:/app/uploads
 
   frontend:
     image: ghcr.io/mutlutunca/omnisync-frontend:latest
@@ -67,3 +73,4 @@ services:
 
 volumes:
   pg_data_staging:
+  uploads_data:

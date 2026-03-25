@@ -88,6 +88,7 @@ def trigger_generate_reply(
     comment_id: str,
     payload: GenerateReplyRequest,
     current_user: User = Depends(RoleChecker("owner", "admin", "manager", "operator")),
+    active_company_id: UUID = Depends(get_active_company_id),
     db: Session = Depends(get_db),
 ) -> dict:
     try:
@@ -95,7 +96,11 @@ def trigger_generate_reply(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid comment id") from exc
 
-    comment = db.query(Comment).filter(Comment.id == cid, Comment.company_id == current_user.company_id).first()
+    if current_user.role == "owner":
+        comment = db.query(Comment).filter(Comment.id == cid).first()
+    else:
+        comment = db.query(Comment).filter(Comment.id == cid, Comment.company_id == active_company_id).first()
+
     if not comment:
         raise HTTPException(status_code=404, detail="Comment not found")
 
@@ -125,6 +130,7 @@ def approve_reply(
     comment_id: str,
     payload: ApproveReplyRequest,
     current_user: User = Depends(RoleChecker("owner", "admin", "manager", "operator")),
+    active_company_id: UUID = Depends(get_active_company_id),
     db: Session = Depends(get_db),
 ) -> dict:
     try:
@@ -132,7 +138,11 @@ def approve_reply(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid comment id") from exc
 
-    comment = db.query(Comment).filter(Comment.id == cid, Comment.company_id == current_user.company_id).first()
+    if current_user.role == "owner":
+        comment = db.query(Comment).filter(Comment.id == cid).first()
+    else:
+        comment = db.query(Comment).filter(Comment.id == cid, Comment.company_id == active_company_id).first()
+
     if not comment:
         raise HTTPException(status_code=404, detail="Comment not found")
 

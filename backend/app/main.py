@@ -16,7 +16,7 @@ if not os.path.exists("uploads"):
 if not os.path.exists("uploads/logos"):
     os.makedirs("uploads/logos")
 
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+app.mount("/api/v1/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 app.add_middleware(
     CORSMiddleware,
