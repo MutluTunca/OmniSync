@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.api.v1.dependencies import get_current_user, RoleChecker
+from app.api.v1.dependencies import get_current_user, RoleChecker, get_active_company_id
 from app.db.session import get_db
 from app.models.comment import Comment
 from app.models.post import Post

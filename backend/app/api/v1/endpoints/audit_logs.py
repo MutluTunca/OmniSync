@@ -1,10 +1,10 @@
 from typing import Any
-import uuid
+from uuid import UUID
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
-from app.api.v1.dependencies import get_current_user, get_db, RoleChecker
+from app.api.v1.dependencies import get_current_user, get_db, RoleChecker, get_active_company_id
 from app.models.user import User
 from app.models.audit_log import AuditLog
 
