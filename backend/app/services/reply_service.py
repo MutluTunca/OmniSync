@@ -70,6 +70,8 @@ def generate_reply(
     recent_replies: list[str] | None = None,
     media_url: str | None = None,
     media_caption: str | None = None,
+    company_instructions: str | None = None,
+    ai_model: str | None = None,
 ) -> str:
     base = DEFAULT_TEMPLATES.get(intent, DEFAULT_TEMPLATES["general_interest"])
     if intent == "spam_irrelevant":
@@ -78,18 +80,31 @@ def generate_reply(
     greeting = f"Merhaba @{username}, " if username else "Merhaba, "
     draft = f"{greeting}{base}"
 
+    if ai_model and ai_model.startswith("gemini"):
+        ai_provider = "gemini"
+    elif ai_model and ai_model.startswith("gpt"):
+        ai_provider = "openai"
+    else:
+        ai_provider = settings.ai_provider
+
     # Gemini Logic
-    if settings.ai_provider == "gemini" and settings.gemini_api_key:
+    if ai_provider == "gemini" and settings.gemini_api_key:
         try:
             model = get_gemini_model()
             avoid_block = "\n".join(f"- {x}" for x in (recent_replies or [])[:5]) or "- yok"
             
-            prompt_parts = [
+            base_prompt = (
                 "Sen profesyonel, sıcakkanlı ve ikna edici bir gayrimenkul danışmanısın. "
                 "kKullanıcının emlak yorumuna Türkçe, samimi ve güven veren bir yanıt yaz. "
                 "Maksimum 240 karakter. Asla robotik veya spam gibi görünmesin. "
                 "Aşağıdaki 'Taslak' (Draft) sadece sana konuyu belirtmek için verilmiştir, asıl yanıtı YARATICI BİR ŞEKİLDE kendin baştan yaz! "
                 "Taslağı birebir kopyalamaktan kesinlikle kaçın. Her seferinde kelimeleri ve yapıyı değiştir.\n\n"
+            )
+            if company_instructions:
+                base_prompt += f"ÖZEL ŞİRKET TALİMATLARI (BUNLARA KESİNLİKLE UY): {company_instructions}\n\n"
+
+            prompt_parts = [
+                base_prompt +
                 f"Kullanıcı Yorumu: {comment_text}\n"
                 f"Niyet (Intent): {intent}\n"
                 f"Örnek Taslak (Sadece Fikir Vermesi İçin): {draft}\n"
@@ -131,6 +146,8 @@ def generate_reply(
             "Maksimum 240 karakter. Spam gibi olmasin. "
             "Ayni kalibi tekrar etme, her cevapta farkli ifade kullan."
         )
+        if company_instructions:
+            system_prompt += f"\nOZEL SIRKET TALIMATLARI (KESINLIKLE UY): {company_instructions}"
         
         user_content = [
             {
@@ -153,7 +170,7 @@ def generate_reply(
             })
 
         completion = client.chat.completions.create(
-            model=settings.openai_model_reply,
+            model=ai_model or settings.openai_model_reply,
             temperature=0.8,
             messages=[
                 {"role": "system", "content": system_prompt},

@@ -22,6 +22,7 @@ class Company(Base):
     max_accounts: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     daily_reply_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=50)
     ai_model_tier: Mapped[str] = mapped_column(Text, nullable=False, default="gpt-4.1-mini")
+    ai_custom_instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     meta_access_token_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
     meta_token_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

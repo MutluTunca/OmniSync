@@ -339,7 +339,7 @@ export default function HomePage() {
             </Link>
 
             {/* AI Ayarları / Status */}
-            <div className="menu-card glass-card status-card">
+            <Link href="/ai-settings" className="menu-card glass-card status-card">
                <div className="health-stat-pill" style={{ 
                  background: health === "online" ? "var(--success-bg)" : "var(--danger-bg)",
                  color: health === "online" ? "var(--success-text)" : "var(--danger-text)"
@@ -351,9 +351,9 @@ export default function HomePage() {
               </div>
               <div className="menu-card-body">
                 <h3>Yapay Zeka</h3>
-                <p>{aiInfo ? `${aiInfo.provider.toUpperCase()} (${aiInfo.model})` : 'Modeller yükleniyor...'}</p>
+                <p>Model seçimi ve özel kurallar belirlemek için tıklayın.</p>
               </div>
-            </div>
+            </Link>
 
             {/* Ayarlar ve Paketim */}
             <Link href="/settings" className="menu-card glass-card">

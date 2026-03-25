@@ -525,6 +525,8 @@ def generate_comment_reply(comment_id: str) -> dict[str, str]:
             recent_replies=recent_replies,
             media_url=media_url,
             media_caption=media_caption,
+            company_instructions=company.ai_custom_instructions if company else None,
+            ai_model=company.ai_model_tier if company else None,
         )
         if not text:
             comment.status = "skipped"

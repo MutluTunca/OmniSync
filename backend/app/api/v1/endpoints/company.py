@@ -29,6 +29,8 @@ class UpdateCompanyRequest(BaseModel):
     plan: str | None = None
     max_accounts: int | None = None
     daily_reply_limit: int | None = None
+    ai_model_tier: str | None = None
+    ai_custom_instructions: str | None = None
 
 
 @router.post("/upload-logo")
@@ -101,6 +103,7 @@ def get_my_company(
         "daily_reply_limit": company.daily_reply_limit,
         "used_replies_today": used_replies_today,
         "ai_model_tier": company.ai_model_tier,
+        "ai_custom_instructions": company.ai_custom_instructions,
         "logo_url": company.logo_url,
     }
 
@@ -157,6 +160,8 @@ def update_company(
         if payload.plan: company.plan = payload.plan
         if payload.max_accounts is not None: company.max_accounts = payload.max_accounts
         if payload.daily_reply_limit is not None: company.daily_reply_limit = payload.daily_reply_limit
+        if payload.ai_model_tier: company.ai_model_tier = payload.ai_model_tier
+        if payload.ai_custom_instructions is not None: company.ai_custom_instructions = payload.ai_custom_instructions
         
     db.add(company)
     db.commit()
