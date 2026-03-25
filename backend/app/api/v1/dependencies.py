@@ -47,12 +47,16 @@ def get_active_company_id(
 ) -> UUID | None:
     # If user is owner and provides a header, use that
     if current_user.role == "owner":
+        if x_company_id == "all":
+            return None # Global view explicitly requested
+        
         if not x_company_id:
-            return None # Global view
+            return current_user.company_id # Fallback to owner's own company
+            
         try:
             return UUID(x_company_id)
         except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid X-Company-ID header")
+            return current_user.company_id # Fallback if invalid
     
     # Otherwise, fall back to user's own company
     return current_user.company_id

@@ -189,7 +189,7 @@ export default function HomePage() {
                     }}
                   >
                     <option value="" disabled>Şirket Seçin</option>
-                    <option value="">Tüm Şirketler (Global)</option>
+                    <option value="all">Tüm Şirketler (Global)</option>
                     {allCompanies.map(c => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
