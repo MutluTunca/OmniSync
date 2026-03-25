@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from uuid import UUID
 from typing import Any, List
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, case, desc
