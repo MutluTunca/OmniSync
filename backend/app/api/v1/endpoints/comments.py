@@ -31,16 +31,18 @@ def list_comments(
     status: str | None = Query(default=None),
     intent: str | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=200),
-    active_company_id: UUID = Depends(get_active_company_id),
+    active_company_id: UUID | None = Depends(get_active_company_id),
     db: Session = Depends(get_db),
 ) -> dict:
     query = (
         db.query(Comment, Reply, Post)
         .join(Post, Post.id == Comment.post_id)
         .outerjoin(Reply, Reply.comment_id == Comment.id)
-        .filter(Comment.company_id == active_company_id)
-        .order_by(Comment.received_at.desc())
     )
+    if active_company_id:
+        query = query.filter(Comment.company_id == active_company_id)
+    
+    query = query.order_by(Comment.received_at.desc())
     if status:
         if status in {"draft", "scheduled", "sent", "failed"}:
             query = query.filter(Reply.status == status)
@@ -88,7 +90,7 @@ def trigger_generate_reply(
     comment_id: str,
     payload: GenerateReplyRequest,
     current_user: User = Depends(RoleChecker("owner", "admin", "manager", "operator")),
-    active_company_id: UUID = Depends(get_active_company_id),
+    active_company_id: UUID | None = Depends(get_active_company_id),
     db: Session = Depends(get_db),
 ) -> dict:
     try:
@@ -130,7 +132,7 @@ def approve_reply(
     comment_id: str,
     payload: ApproveReplyRequest,
     current_user: User = Depends(RoleChecker("owner", "admin", "manager", "operator")),
-    active_company_id: UUID = Depends(get_active_company_id),
+    active_company_id: UUID | None = Depends(get_active_company_id),
     db: Session = Depends(get_db),
 ) -> dict:
     try:

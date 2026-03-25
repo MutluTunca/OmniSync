@@ -44,9 +44,11 @@ def get_current_user(
 def get_active_company_id(
     current_user: User = Depends(get_current_user),
     x_company_id: str | None = Header(None, alias="X-Company-ID")
-) -> UUID:
+) -> UUID | None:
     # If user is owner and provides a header, use that
-    if current_user.role == "owner" and x_company_id:
+    if current_user.role == "owner":
+        if not x_company_id:
+            return None # Global view
         try:
             return UUID(x_company_id)
         except ValueError:

@@ -188,7 +188,8 @@ export default function HomePage() {
                       window.location.reload();
                     }}
                   >
-                    <option value="" disabled>Şirket Değiştir</option>
+                    <option value="" disabled>Şirket Seçin</option>
+                    <option value="">Tüm Şirketler (Global)</option>
                     {allCompanies.map(c => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
