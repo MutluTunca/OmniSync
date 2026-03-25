@@ -181,6 +181,30 @@ export default function UsersPage() {
     }
   }
 
+  async function handleDeleteUser(userId: string) {
+    if (!token) return;
+    if (!window.confirm("Bu kullanıcıyı kalıcı olarak silmek istediğinize emin misiniz?")) return;
+    
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/users/${userId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || "Silme islemi basarisiz");
+      }
+      setMessage("Kullanici basariyla silindi.");
+      await loadUsers(token);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Silme islemi basarisiz");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function logout() {
     window.localStorage.removeItem(TOKEN_STORAGE_KEY);
     setToken("");
@@ -327,6 +351,14 @@ export default function UsersPage() {
                           style={{ padding: "4px 8px", fontSize: "0.85rem" }}
                         >
                           {user.is_active ? "Pasif Yap" : "Aktif Yap"}
+                        </button>
+                        <button
+                          className="btn-secondary"
+                          onClick={() => handleDeleteUser(user.id)}
+                          disabled={loading}
+                          style={{ padding: "4px 8px", fontSize: "0.85rem", marginLeft: '8px', backgroundColor: '#dc3545', color: 'white' }}
+                        >
+                          Sil
                         </button>
                       </td>
                     </tr>

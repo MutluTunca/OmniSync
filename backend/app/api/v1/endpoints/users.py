@@ -135,3 +135,26 @@ def update_user(
     db.commit()
     db.refresh(user)
     return UserItem(id=str(user.id), email=user.email, full_name=user.full_name, role=Role(user.role), is_active=user.is_active)
+
+
+@router.delete("/{user_id}", status_code=204)
+def delete_user(
+    user_id: str,
+    creator: User = Depends(RoleChecker("owner")),
+    db: Session = Depends(get_db)
+) -> None:
+    try:
+        uid = UUID(user_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid user id") from exc
+
+    user = db.query(User).filter(User.id == uid).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if user.id == creator.id:
+        raise HTTPException(status_code=400, detail="Cannot delete yourself")
+
+    db.delete(user)
+    db.commit()
+    return None
