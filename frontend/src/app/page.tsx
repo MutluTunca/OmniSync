@@ -339,7 +339,7 @@ export default function HomePage() {
             </Link>
 
             {/* AI Ayarları / Status */}
-            <Link href="/ai-settings" className="menu-card glass-card status-card">
+            <Link href="/ai-settings" className="menu-card glass-card">
                <div className="health-stat-pill" style={{ 
                  background: health === "online" ? "var(--success-bg)" : "var(--danger-bg)",
                  color: health === "online" ? "var(--success-text)" : "var(--danger-text)"
