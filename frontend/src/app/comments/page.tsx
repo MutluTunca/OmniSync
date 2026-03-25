@@ -31,6 +31,8 @@ type CommentItem = {
   received_at: string;
   post: PostItem;
   reply: ReplyItem | null;
+  company_name?: string;
+  company_id?: string;
 };
 
 type ApiResponse = {
@@ -440,6 +442,7 @@ export default function CommentsPage() {
           <table className="comments-table">
             <thead>
               <tr>
+                <th>Şirket</th>
                 <th>Yorum</th>
                 <th>Paylaşım</th>
                 <th>Intent</th>
@@ -461,6 +464,9 @@ export default function CommentsPage() {
               ) : (
                 pagedItems.map((item) => (
                   <tr key={item.id}>
+                    <td>
+                      <span className="badge" style={{ fontSize: '0.75rem' }}>{item.company_name}</span>
+                    </td>
                     <td>
                       {item.commenter_username ? <small className="subtle">@{item.commenter_username}</small> : null}
                       <div style={{ fontSize: '0.95rem', fontWeight: 500 }}>{item.text}</div>

@@ -11,6 +11,7 @@ from app.models.comment import Comment
 from app.models.post import Post
 from app.models.reply import Reply
 from app.models.user import User
+from app.models.company import Company # ADDED
 from app.workers.celery_app import celery_app
 
 
@@ -35,8 +36,9 @@ def list_comments(
     db: Session = Depends(get_db),
 ) -> dict:
     query = (
-        db.query(Comment, Reply, Post)
+        db.query(Comment, Reply, Post, Company)
         .join(Post, Post.id == Comment.post_id)
+        .join(Company, Company.id == Post.company_id)
         .outerjoin(Reply, Reply.comment_id == Comment.id)
     )
     if active_company_id:
@@ -79,8 +81,10 @@ def list_comments(
                 }
                 if reply
                 else None,
+                "company_name": company.name,
+                "company_id": str(company.id),
             }
-            for comment, reply, post in rows
+            for comment, reply, post, company in rows
         ]
     }
 
