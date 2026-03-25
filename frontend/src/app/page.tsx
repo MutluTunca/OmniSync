@@ -179,21 +179,26 @@ export default function HomePage() {
           
           <div className="topbar-actions flex items-center" style={{ gap: '1rem' }}>
              {userRole === 'owner' && (
-               <div className="company-switcher-container">
-                  <select 
-                    className="glass-select"
-                    value={company?.id || ""}
-                    onChange={(e) => {
-                      window.localStorage.setItem("omnisync_selected_company_id", e.target.value);
-                      window.location.reload();
-                    }}
-                  >
-                    <option value="" disabled>Şirket Seçin</option>
-                    <option value="all">Tüm Şirketler (Global)</option>
-                    {allCompanies.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
+               <div className="flex items-center" style={{ gap: '0.75rem' }}>
+                 <div className="company-switcher-container">
+                    <select 
+                      className="glass-select"
+                      value={company?.id || ""}
+                      onChange={(e) => {
+                        window.localStorage.setItem("omnisync_selected_company_id", e.target.value);
+                        window.location.reload();
+                      }}
+                    >
+                      <option value="" disabled>Şirket Seçin</option>
+                      <option value="all">Tüm Şirketler (Global)</option>
+                      {allCompanies.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                 </div>
+                 <Link href="/companies" className="btn-secondary" style={{ backgroundColor: '#f1f5f9', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Settings size={14} /> Yönet
+                 </Link>
                </div>
              )}
             <Link href="/login" className="btn-secondary">

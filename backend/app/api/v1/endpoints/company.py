@@ -161,3 +161,25 @@ def update_company(
     db.add(company)
     db.commit()
     return {"status": "success", "company_id": str(company.id)}
+
+@router.delete("/{company_id}")
+def delete_company(
+    company_id: UUID,
+    current_user: User = Depends(RoleChecker("owner")),
+    db: Session = Depends(get_db)
+) -> dict:
+    # Olay: Owner'ın kendi ana şirketini silmesini engelle
+    if current_user.company_id == company_id:
+        raise HTTPException(status_code=400, detail="Ana şirketinizi silemezsiniz.")
+
+    company = db.get(Company, company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+
+    # The ondelete="CASCADE" in SQLAlchemy models (e.g. users, instagram_accounts)
+    # usually relies on database-level constraints. Deleting the company
+    # will wipe all related records from DB.
+    db.delete(company)
+    db.commit()
+    
+    return {"status": "success", "message": "Şirket başarıyla silindi"}
