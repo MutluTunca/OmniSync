@@ -16,6 +16,7 @@ def list_logs(
     limit: int = Query(default=50, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     current_user: User = Depends(RoleChecker("owner", "admin", "manager")),
+    active_company_id: UUID = Depends(get_active_company_id),
     db: Session = Depends(get_db),
 ) -> dict:
     """
@@ -23,7 +24,7 @@ def list_logs(
     """
     logs = (
         db.query(AuditLog)
-        .filter(AuditLog.company_id == current_user.company_id)
+        .filter(AuditLog.company_id == active_company_id)
         .order_by(desc(AuditLog.created_at))
         .offset(offset)
         .limit(limit)

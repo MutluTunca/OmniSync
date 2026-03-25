@@ -31,14 +31,14 @@ def list_comments(
     status: str | None = Query(default=None),
     intent: str | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=200),
-    current_user: User = Depends(RoleChecker("owner", "admin", "manager", "operator", "agent")),
+    active_company_id: UUID = Depends(get_active_company_id),
     db: Session = Depends(get_db),
 ) -> dict:
     query = (
         db.query(Comment, Reply, Post)
         .join(Post, Post.id == Comment.post_id)
         .outerjoin(Reply, Reply.comment_id == Comment.id)
-        .filter(Comment.company_id == current_user.company_id)
+        .filter(Comment.company_id == active_company_id)
         .order_by(Comment.received_at.desc())
     )
     if status:

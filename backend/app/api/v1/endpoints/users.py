@@ -42,9 +42,12 @@ def list_users(
     active_company_id: UUID = Depends(get_active_company_id),
     db: Session = Depends(get_db)
 ) -> UserListResponse:
-    # If owner, they see users of the active (selected) company
-    # If admin, they see users of their own company (handled by active_company_id dependency)
-    users = db.query(User).filter(User.company_id == active_company_id).order_by(User.email).all()
+    # If owner, they see all users in the system
+    # If admin, they see users of the active (selected) company
+    if admin.role == Role.owner.value:
+        users = db.query(User).order_by(User.email).all()
+    else:
+        users = db.query(User).filter(User.company_id == active_company_id).order_by(User.email).all()
     result: list[UserItem] = []
     for item in users:
         try:
@@ -107,7 +110,12 @@ def update_user(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid user id") from exc
 
-    user = db.query(User).filter(User.id == uid, User.company_id == active_company_id).first()
+    # If owner, find user anywhere. If admin, find user in active company.
+    if creator.role == Role.owner.value:
+        user = db.query(User).filter(User.id == uid).first()
+    else:
+        user = db.query(User).filter(User.id == uid, User.company_id == active_company_id).first()
+
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 

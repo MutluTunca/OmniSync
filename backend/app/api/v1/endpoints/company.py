@@ -71,7 +71,7 @@ def upload_logo(
 
 @router.get("/me")
 def get_my_company(
-    current_user: User = Depends(RoleChecker("owner", "admin", "manager")),
+    current_user: User = Depends(RoleChecker("owner", "admin", "manager", "operator", "agent")),
     active_company_id: UUID = Depends(get_active_company_id),
     db: Session = Depends(get_db)
 ) -> dict:

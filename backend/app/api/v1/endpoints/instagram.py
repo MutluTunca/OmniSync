@@ -143,9 +143,10 @@ def poll_now() -> dict[str, str]:
 def manual_connect(
     payload: ManualConnectRequest,
     current_user: User = Depends(RoleChecker("owner", "admin")),
+    active_company_id: UUID = Depends(get_active_company_id),
     db: Session = Depends(get_db)
 ) -> dict:
-    company = db.get(Company, current_user.company_id)
+    company = db.get(Company, active_company_id)
     if not company:
         raise HTTPException(status_code=400, detail="Company not found")
 
@@ -200,9 +201,12 @@ def manual_connect(
 
 
 @router.get("/oauth/start")
-def oauth_start(current_user: User = Depends(RoleChecker("owner", "admin"))) -> dict[str, str]:
-    # Encode company_id into state to maintain multi-tenancy during callback
-    state = f"{uuid4()}:{current_user.company_id}"
+def oauth_start(
+    current_user: User = Depends(RoleChecker("owner", "admin")),
+    active_company_id: UUID = Depends(get_active_company_id)
+) -> dict[str, str]:
+    # Encode active_company_id into state to maintain multi-tenancy during callback
+    state = f"{uuid4()}:{active_company_id}"
     params = {
         "client_id": settings.meta_app_id,
         "redirect_uri": settings.meta_oauth_redirect_uri,
