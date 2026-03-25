@@ -44,13 +44,10 @@ def list_users(
 ) -> UserListResponse:
     # If owner, they see all users in the system
     # If admin, they see users of the active (selected) company
-    print(f"DEBUG: list_users called by {admin.email} with role {admin.role}")
     if admin.role == Role.owner.value:
         users = db.query(User).order_by(User.email).all()
-        print(f"DEBUG: Owner mode - found {len(users)} users")
     else:
         users = db.query(User).filter(User.company_id == active_company_id).order_by(User.email).all()
-        print(f"DEBUG: Admin mode - found {len(users)} users for company {active_company_id}")
     result: list[UserItem] = []
     for item in users:
         try:
