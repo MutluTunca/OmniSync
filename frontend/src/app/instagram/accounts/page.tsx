@@ -29,7 +29,20 @@ export default function AccountsPage() {
 
   const [error, setError] = useState("");
 
+  const [showManualForm, setShowManualForm] = useState(false);
+  const [manualPayload, setManualPayload] = useState({
+    ig_user_id: "",
+    username: "",
+    page_id: "",
+    page_access_token: "",
+  });
+  const [submitting, setSubmitting] = useState(false);
+
   useEffect(() => {
+    refreshAccounts();
+  }, []);
+
+  function refreshAccounts() {
     const token = window.localStorage.getItem(TOKEN_STORAGE_KEY);
     if (!token) {
       setError("Lutfen once giris yapin (/users veya /login).");
@@ -37,6 +50,7 @@ export default function AccountsPage() {
       return;
     }
 
+    setLoading(true);
     fetch(`${API_BASE}/api/v1/instagram/accounts`, { 
       cache: "no-store", 
       headers: { Authorization: `Bearer ${token}` } 
@@ -48,7 +62,38 @@ export default function AccountsPage() {
       .then((data: ApiRes) => setItems(data.items ?? []))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, []);
+  }
+
+  async function handleManualSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+    setError("");
+    
+    try {
+      const token = window.localStorage.getItem(TOKEN_STORAGE_KEY);
+      const res = await fetch(`${API_BASE}/api/v1/instagram/manual-connect`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(manualPayload),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.detail || "Baglanti basarisiz.");
+      }
+
+      setShowManualForm(false);
+      setManualPayload({ ig_user_id: "", username: "", page_id: "", page_access_token: "" });
+      refreshAccounts();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <div className="dashboard-wrapper">
@@ -63,16 +108,81 @@ export default function AccountsPage() {
             <h1>Instagram Hesap Yönetimi</h1>
             <p>Bağlı hesapları ve token durumlarını buradan izleyin.</p>
           </div>
-          <div className="topbar-actions">
+          <div className="topbar-actions" style={{ display: 'flex', gap: '12px' }}>
+            <button 
+              className="btn-secondary" 
+              onClick={() => setShowManualForm(!showManualForm)}
+              style={{ padding: '10px 16px', fontSize: '0.9rem' }}
+            >
+              {showManualForm ? "İptal" : "Gelişmiş: Manuel Bağla"}
+            </button>
             <Link className="btn-primary" href="/instagram/connect" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
               + Yeni Hesap Bağla
             </Link>
           </div>
         </header>
 
+        {showManualForm && (
+          <section className="glass-card" style={{ marginBottom: '30px', padding: '24px' }}>
+            <h3 style={{ marginBottom: '16px' }}>Manuel Instagram Bağlantısı</h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+              Meta App Geliştirici modundayken veya OAuth sorunlarında bu formu kullanabilirsiniz.
+            </p>
+            <form onSubmit={handleManualSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="input-group">
+                <label>Instagram User ID</label>
+                <input 
+                  type="text" 
+                  placeholder="örn: 178414..." 
+                  required
+                  value={manualPayload.ig_user_id}
+                  onChange={e => setManualPayload({...manualPayload, ig_user_id: e.target.value})}
+                />
+              </div>
+              <div className="input-group">
+                <label>Kullanıcı Adı</label>
+                <input 
+                  type="text" 
+                  placeholder="örn: omnisync_emlak" 
+                  required
+                  value={manualPayload.username}
+                  onChange={e => setManualPayload({...manualPayload, username: e.target.value})}
+                />
+              </div>
+              <div className="input-group">
+                <label>Facebook Page ID</label>
+                <input 
+                  type="text" 
+                  placeholder="örn: 105..." 
+                  required
+                  value={manualPayload.page_id}
+                  onChange={e => setManualPayload({...manualPayload, page_id: e.target.value})}
+                />
+              </div>
+              <div className="input-group">
+                <label>Page Access Token</label>
+                <input 
+                  type="password" 
+                  placeholder="EAAB..." 
+                  required
+                  value={manualPayload.page_access_token}
+                  onChange={e => setManualPayload({...manualPayload, page_access_token: e.target.value})}
+                />
+              </div>
+              <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+                <button className="btn-primary" type="submit" disabled={submitting}>
+                  {submitting ? "Bağlanıyor..." : "Hesabı Tanımla"}
+                </button>
+              </div>
+            </form>
+          </section>
+        )}
+
         {error ? (
-          <div className="notice" style={{ background: 'var(--danger-bg)', color: 'var(--danger-text)' }}>{error}</div>
-        ) : loading ? (
+          <div className="notice" style={{ background: 'var(--danger-bg)', color: 'var(--danger-text)', marginBottom: '20px' }}>{error}</div>
+        ) : null}
+
+        {loading ? (
           <div className="glass-loader">
             <Loader2 className="animate-spin" size={32} />
             <p>Hesaplar yükleniyor...</p>
@@ -82,9 +192,11 @@ export default function AccountsPage() {
             {items.length === 0 ? (
               <div className="glass-card" style={{ padding: '40px', textAlign: 'center' }}>
                 <p>Henüz bağlı bir Instagram hesabı bulunamadı.</p>
-                <Link className="btn-primary" href="/instagram/connect" style={{ display: 'inline-flex', marginTop: '16px', textDecoration: 'none' }}>
-                  Hemen Bağla
-                </Link>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '16px' }}>
+                   <Link className="btn-primary" href="/instagram/connect" style={{ textDecoration: 'none' }}>
+                    Hemen Bağla
+                  </Link>
+                </div>
               </div>
             ) : (
               <section className="table-wrap glass-card">
@@ -138,7 +250,7 @@ export default function AccountsPage() {
           </>
         )}
 
-        <Link className="link" href="/" style={{ marginTop: '40px' }}>
+        <Link className="link" href="/" style={{ marginTop: '40px', display: 'inline-flex', alignItems: 'center' }}>
           <ArrowRight size={18} style={{ transform: 'rotate(180deg)', marginRight: '8px' }} />
           Ana sayfaya dön
         </Link>
@@ -239,6 +351,33 @@ export default function AccountsPage() {
             display: block;
             text-align: center;
           }
+        }
+
+        .input-group {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .input-group label {
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: var(--text-secondary);
+        }
+
+        .input-group input {
+          background: rgba(255, 255, 255, 0.5);
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          padding: 10px 14px;
+          border-radius: 8px;
+          font-size: 0.9rem;
+          color: var(--text-main);
+          transition: border-color 0.2s;
+        }
+
+        .input-group input:focus {
+          outline: none;
+          border-color: var(--primary);
         }
       `}</style>
     </div>
