@@ -169,9 +169,8 @@ export default function CommentsPage() {
     try {
       const selectedCompanyId = window.localStorage.getItem("omnisync_selected_company_id");
       const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
-      if (selectedCompanyId) {
-        headers["X-Company-ID"] = selectedCompanyId;
-      }
+      // Always send X-Company-ID: if none selected, send 'all' for global owner view
+      headers["X-Company-ID"] = selectedCompanyId || "all";
 
       const res = await fetch(`${API_BASE}/api/v1/comments?limit=200`, { 
         cache: "no-store",
