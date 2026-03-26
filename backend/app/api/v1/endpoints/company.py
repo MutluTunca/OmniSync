@@ -155,13 +155,14 @@ def update_company(
     if payload.name: company.name = payload.name
     if payload.logo_url: company.logo_url = payload.logo_url
     
+    if payload.ai_model_tier: company.ai_model_tier = payload.ai_model_tier
+    if payload.ai_custom_instructions is not None: company.ai_custom_instructions = payload.ai_custom_instructions
+    
     # Only owner can change plan and limits
     if current_user.role == "owner":
         if payload.plan: company.plan = payload.plan
         if payload.max_accounts is not None: company.max_accounts = payload.max_accounts
         if payload.daily_reply_limit is not None: company.daily_reply_limit = payload.daily_reply_limit
-        if payload.ai_model_tier: company.ai_model_tier = payload.ai_model_tier
-        if payload.ai_custom_instructions is not None: company.ai_custom_instructions = payload.ai_custom_instructions
         
     db.add(company)
     db.commit()

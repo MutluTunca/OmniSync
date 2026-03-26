@@ -5,6 +5,7 @@ def configure_gemini():
     if settings.gemini_api_key:
         genai.configure(api_key=settings.gemini_api_key)
 
-def get_gemini_model():
+def get_gemini_model(model_name: str | None = None):
     configure_gemini()
-    return genai.GenerativeModel(settings.gemini_model)
+    name = model_name or settings.gemini_model
+    return genai.GenerativeModel(name)

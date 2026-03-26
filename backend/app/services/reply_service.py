@@ -90,7 +90,7 @@ def generate_reply(
     # Gemini Logic
     if ai_provider == "gemini" and settings.gemini_api_key:
         try:
-            model = get_gemini_model()
+            model = get_gemini_model(ai_model)
             avoid_block = "\n".join(f"- {x}" for x in (recent_replies or [])[:5]) or "- yok"
             
             base_prompt = (
