@@ -72,6 +72,8 @@ def generate_reply(
     media_caption: str | None = None,
     company_instructions: str | None = None,
     ai_model: str | None = None,
+    is_dm: bool = False,
+    conversation_history: list[dict[str, str]] | None = None,
 ) -> str:
     base = DEFAULT_TEMPLATES.get(intent, DEFAULT_TEMPLATES["general_interest"])
     if intent == "spam_irrelevant":
@@ -94,23 +96,32 @@ def generate_reply(
             avoid_block = "\n".join(f"- {x}" for x in (recent_replies or [])[:5]) or "- yok"
             
             base_prompt = (
-                "Sen profesyonel, sıcakkanlı ve ikna edici bir gayrimenkul danışmanısın. "
-                "kKullanıcının emlak yorumuna Türkçe, samimi ve güven veren bir yanıt yaz. "
-                "Maksimum 240 karakter. Asla robotik veya spam gibi görünmesin. "
-                "Aşağıdaki 'Taslak' (Draft) sadece sana konuyu belirtmek için verilmiştir, asıl yanıtı YARATICI BİR ŞEKİLDE kendin baştan yaz! "
-                "Taslağı birebir kopyalamaktan kesinlikle kaçın. Her seferinde kelimeleri ve yapıyı değiştir.\n\n"
+                "Sen profesyonel, samimi ve ikna edici bir gayrimenkul danışmanısın. "
+                "Kullanıcının mesajına Türkçe, samimi ve güven veren bir yanıt yaz. "
+                "Maksimum 240 karakter. "
             )
+            
+            if is_dm:
+                base_prompt += "Bu bir DM (Direkt Mesaj) konuşmasıdır. Yanıtın kısa, öz ve akışı devam ettiren bir yapıda olsun.\n"
+            else:
+                base_prompt += "Aşağıdaki 'Taslak' (Draft) sadece fikir vermesi içindir, birebir kopyalama!\n"
+
             if company_instructions:
                 base_prompt += f"ÖZEL ŞİRKET TALİMATLARI (BUNLARA KESİNLİKLE UY): {company_instructions}\n\n"
 
+            history_str = ""
+            if conversation_history:
+                history_str = "Sohbet Geçmişi:\n" + "\n".join([f"{m['role']}: {m['content']}" for m in conversation_history])
+
             prompt_parts = [
                 base_prompt +
-                f"Kullanıcı Yorumu: {comment_text}\n"
+                f"{history_str}\n"
+                f"Kullanıcı Sondaki Mesajı/Yorumu: {comment_text}\n"
                 f"Niyet (Intent): {intent}\n"
-                f"Örnek Taslak (Sadece Fikir Vermesi İçin): {draft}\n"
-                f"İlan Açıklaması: {media_caption or 'yok'}\n"
-                f"Geçmiş Yanıtların (Bunlara benzer şeyler GİRME):\n{avoid_block}\n"
-                "Yanıtının sonunda kullanıcıyı DM'e yönlendiren kısa ve nazik bir ifade (Call-to-Action) bulunsun."
+                f"Örnek Taslak: {draft}\n"
+                f"İlan/Görsel Açıklaması: {media_caption or 'yok'}\n"
+                "Kural: Eğer kullanıcı bir görsel gönderdiyse, görseli analiz et ve içeriğine göre (ev mi, arsa mı, detay mı?) profesyonelce yorum yap.\n"
+                "Yanıtın sonunda akışı tamamlayan veya DM'deysen bir eylem çağrısı yap."
             ]
             
             if media_url:
@@ -139,26 +150,31 @@ def generate_reply(
 
     try:
         client = get_openai_client()
-        avoid_block = "\n".join(f"- {x}" for x in (recent_replies or [])[:5]) or "- yok"
         
         system_prompt = (
-            "Turkce, samimi ve profesyonel tek bir emlak yaniti yaz. "
-            "Maksimum 240 karakter. Spam gibi olmasin. "
-            "Ayni kalibi tekrar etme, her cevapta farkli ifade kullan."
+            "Sen uzman bir gayrimenkul danışmanısın. Türkçe, samimi ve profesyonel yanıt yaz. "
+            "Maksimum 240 karakter. Ayni kalibi tekrar etme."
         )
         if company_instructions:
             system_prompt += f"\nOZEL SIRKET TALIMATLARI (KESINLIKLE UY): {company_instructions}"
         
+        if is_dm:
+            system_prompt += "\nBu bir DM konusmasidir. Diyalogu devam ettir, yardimci ol ve guven ver."
+
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        if conversation_history:
+            for m in conversation_history:
+                messages.append({"role": m["role"], "content": m["content"]})
+
         user_content = [
             {
                 "type": "text", 
                 "text": (
-                    f"Yorum: {comment_text}\n"
-                    f"Intent: {intent}\n"
-                    f"Taslak: {draft}\n"
-                    f"Post Aciklamasi: {media_caption or 'yok'}\n"
-                    f"Tekrar etme listesi:\n{avoid_block}\n"
-                    "Yanitta DM'e yonlendiren kisa bir cagirida bulun."
+                    f"Kullanici Mesaji: {comment_text}\n"
+                    f"Detected Intent: {intent}\n"
+                    f"Sample Draft: {draft}\n"
+                    "Eger bir gorsel (image) gorebiliyorsan, emlak detaylarina gore yorumla."
                 )
             }
         ]
@@ -168,17 +184,18 @@ def generate_reply(
                 "type": "image_url",
                 "image_url": {"url": media_url}
             })
+        
+        messages.append({"role": "user", "content": user_content})
 
         completion = client.chat.completions.create(
             model=ai_model or settings.openai_model_reply,
             temperature=0.8,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_content},
-            ],
+            messages=messages,
             max_tokens=150,
         )
         text = (completion.choices[0].message.content or draft).strip()
         return text[:240]
-    except Exception:
+    except Exception as e:
+        import logging
+        logging.error(f"OpenAI Reply Error: {e}")
         return _fallback_reply(intent=intent, username=username)

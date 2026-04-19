@@ -97,3 +97,19 @@ class MetaGraphClient:
         )
         response.raise_for_status()
         return response.json()
+    def send_direct_message(self, recipient_id: str, message_text: str, access_token: str) -> dict:
+        """Sends a text message to an Instagram user via DM."""
+        response = httpx.post(
+            f"{self.base_url}/me/messages",
+            params={"access_token": access_token},
+            json={
+                "recipient": {"id": recipient_id},
+                "message": {"text": message_text}
+            },
+            timeout=20,
+        )
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as e:
+            raise Exception(f"Meta Graph API Messaging Error: {response.text}") from e
+        return response.json()

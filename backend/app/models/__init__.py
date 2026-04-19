@@ -6,3 +6,5 @@ from app.models.comment import Comment
 from app.models.reply import Reply
 from app.models.webhook_event import WebhookEvent
 from app.models.audit_log import AuditLog
+from app.models.conversation import Conversation
+from app.models.message import Message

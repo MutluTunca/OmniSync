@@ -4,7 +4,9 @@ from uuid import UUID
 
 from app.db.session import SessionLocal
 from app.models.comment import Comment
+from app.models.conversation import Conversation
 from app.models.instagram_account import InstagramAccount
+from app.models.message import Message
 from app.models.post import Post
 from app.models.reply import Reply
 from app.models.webhook_event import WebhookEvent
@@ -188,6 +190,25 @@ def process_webhook_event(event_id: str) -> dict[str, str]:
         queued_comment_ids: list[str] = []
 
         for entry in entries:
+            # Handle Instagram Messaging (DMs)
+            if "messaging" in entry:
+                for messaging_event in entry.get("messaging", []):
+                    # ig_user_id here is the ID of the professional account (recipient of the event)
+                    # recipient_id is the Page/Account receiving the message
+                    # sender_id is the User sending the message
+                    recipient_id = messaging_event.get("recipient", {}).get("id")
+                    
+                    account = None
+                    if recipient_id:
+                        account = db.query(InstagramAccount).filter(InstagramAccount.ig_user_id == str(recipient_id)).first()
+                    
+                    if not account:
+                        continue
+
+                    # Dispatch to DM processing task
+                    celery_app.send_task("app.workers.tasks.process_messaging_event", args=[str(event.id), messaging_event])
+
+            # Handle Changes (Comments)
             for change in entry.get("changes", []):
                 value = change.get("value", {})
                 ig_user_id = value.get("instagram_id") or entry.get("id")
@@ -670,5 +691,173 @@ def send_reply(reply_id: str) -> dict[str, str]:
         db.add(comment)
         db.commit()
         return {"status": reply.status}
+    finally:
+        db.close()
+
+
+@celery_app.task(name="app.workers.tasks.process_messaging_event")
+def process_messaging_event(event_id: str, messaging_event: dict) -> dict[str, str]:
+    db = SessionLocal()
+    try:
+        sender_id = messaging_event.get("sender", {}).get("id")
+        recipient_id = messaging_event.get("recipient", {}).get("id")
+        message_data = messaging_event.get("message", {})
+        
+        if not sender_id or not recipient_id or not message_data:
+            return {"status": "invalid_data"}
+
+        if "is_echo" in message_data:
+            return {"status": "echo_ignored"}
+
+        # Find account
+        account = db.query(InstagramAccount).filter(InstagramAccount.ig_user_id == str(recipient_id)).first()
+        if not account:
+            return {"status": "account_not_found"}
+
+        # Find or create conversation
+        conv = db.query(Conversation).filter(
+            Conversation.account_id == account.id,
+            Conversation.ig_sid == str(sender_id)
+        ).first()
+        
+        if not conv:
+            conv = Conversation(
+                company_id=account.company_id,
+                account_id=account.id,
+                ig_sid=str(sender_id),
+                status="active"
+            )
+            db.add(conv)
+            db.flush()
+
+        # Handle attachments (Vision Support)
+        media_url = None
+        media_type = None
+        attachments = message_data.get("attachments", [])
+        if attachments:
+            # Take the first image if present
+            for att in attachments:
+                if att.get("type") == "image":
+                    payload_data = att.get("payload", {})
+                    media_url = payload_data.get("url")
+                    media_type = "image"
+                    break
+
+        # Store incoming message
+        msg_text = message_data.get("text")
+        incoming_msg = Message(
+            conversation_id=conv.id,
+            ig_mid=message_data.get("mid"),
+            sender_id=str(sender_id),
+            recipient_id=str(recipient_id),
+            direction="inbound",
+            message_text=msg_text,
+            media_url=media_url,
+            media_type=media_type,
+            raw_payload=messaging_event,
+            status="received"
+        )
+        db.add(incoming_msg)
+        
+        # Update conversation
+        conv.last_message_text = msg_text or f"[{media_type or 'attachment'}]"
+        conv.last_message_at = datetime.now(timezone.utc)
+        
+        db.commit()
+
+        # Decide intent (optional context)
+        intent = "general_interest"
+        if msg_text:
+            from app.services.intent_service import classify_intent
+            intent, *_ = classify_intent(msg_text)
+
+        # Trigger reply generation
+        celery_app.send_task("app.workers.tasks.generate_dm_reply_task", args=[str(incoming_msg.id), intent])
+        
+        return {"status": "message_queued"}
+    finally:
+        db.close()
+
+
+@celery_app.task(name="app.workers.tasks.generate_dm_reply_task")
+def generate_dm_reply_task(message_id: str, intent: str) -> dict[str, str]:
+    db = SessionLocal()
+    try:
+        msg = db.get(Message, UUID(message_id))
+        if not msg or msg.direction != "inbound":
+            return {"status": "invalid_message"}
+        
+        conv = db.get(Conversation, msg.conversation_id)
+        account = db.get(InstagramAccount, conv.account_id)
+        company = db.get(Company, account.company_id)
+
+        # Get history (last 10 messages)
+        history_msgs = db.query(Message).filter(
+            Message.conversation_id == conv.id
+        ).order_by(Message.created_at.desc()).limit(11).all() # 1 is current, 10 is history
+        
+        history_msgs.reverse()
+        history_data = []
+        for h in history_msgs:
+            if h.id == msg.id: continue # skip current
+            role = "user" if h.direction == "inbound" else "assistant"
+            history_data.append({"role": role, "content": h.message_text or ""})
+
+        from app.services.reply_service import generate_reply
+        
+        reply_text = generate_reply(
+            comment_text=msg.message_text or "[Görsel Mesaj]",
+            intent=intent,
+            username=conv.participant_username,
+            recent_replies=None, # Not used for DM exactly the same way yet
+            media_url=msg.media_url, # Vision support!
+            media_caption=None,
+            company_instructions=company.ai_custom_instructions,
+            ai_model=company.ai_model_tier,
+            is_dm=True,
+            conversation_history=history_data
+        )
+
+        if not reply_text:
+            return {"status": "no_reply_generated"}
+
+        # Send via Meta
+        from app.integrations.meta_client import MetaGraphClient
+        client = MetaGraphClient()
+        
+        try:
+            from app.core.security import decrypt_token
+            token = decrypt_token(account.access_token_encrypted)
+            
+            res = client.send_direct_message(
+                recipient_id=msg.sender_id,
+                message_text=reply_text,
+                access_token=token
+            )
+            
+            # Store outbound message
+            out_msg = Message(
+                conversation_id=conv.id,
+                ig_mid=res.get("message_id", f"out_{uuid.uuid4()}"),
+                sender_id=msg.sender_id,
+                recipient_id=msg.sender_id,
+                direction="outbound",
+                message_text=reply_text,
+                status="sent"
+            )
+            db.add(out_msg)
+            
+            # Update conversation
+            conv.last_message_text = reply_text
+            conv.last_message_at = datetime.now(timezone.utc)
+            db.commit()
+            
+            return {"status": "reply_sent", "message_id": out_msg.ig_mid}
+            
+        except Exception as e:
+            import logging
+            logging.error(f"DM Send Error: {e}")
+            return {"status": "send_failed", "error": str(e)}
+
     finally:
         db.close()

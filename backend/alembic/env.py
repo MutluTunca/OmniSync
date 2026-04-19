@@ -13,6 +13,8 @@ from app.models import (
     reply,
     user,
     webhook_event,
+    conversation,
+    message,
 )
 
 
