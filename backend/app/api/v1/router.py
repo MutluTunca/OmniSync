@@ -9,7 +9,8 @@ from app.api.v1.endpoints import (
     users, 
     webhooks,
     audit_logs,
-    analytics
+    analytics,
+    conversations
 )
 
 
@@ -24,3 +25,4 @@ api_router.include_router(monitoring.router, prefix="/monitoring", tags=["monito
 api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(audit_logs.router, prefix="/audit-logs", tags=["audit-logs"])
 api_router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
+api_router.include_router(conversations.router, prefix="/conversations", tags=["conversations"])

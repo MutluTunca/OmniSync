@@ -291,6 +291,17 @@ export default function HomePage() {
                 <p>AI destekli otomatik yanıtlar ve etkileşim takibi.</p>
               </div>
             </Link>
+            
+            {/* DM Yonetimi */}
+            <Link href="/conversations" className="menu-card glass-card">
+              <div className="menu-card-image" style={{ backgroundImage: "url('/images/dashboard/ai.png')" }}>
+                <MessageSquare className="card-icon" size={40} />
+              </div>
+              <div className="menu-card-body">
+                <h3>DM Merkezi</h3>
+                <p>Müşterilerle olan direkt mesajlaşmalar ve AI destekli sohbetler.</p>
+              </div>
+            </Link>
 
             {/* Hesap Yönetimi */}
             <Link href="/instagram/accounts" className="menu-card glass-card">

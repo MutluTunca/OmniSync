@@ -56,6 +56,12 @@ async def receive_webhook(
     
     try:
         payload = await request.json()
+        # Log basic info for debugging
+        print(f"WEBHOOK RECEIVED: Object={payload.get('object')} EntryCount={len(payload.get('entry', []))}")
+        if payload.get("entry"):
+            for entry in payload["entry"]:
+                if "messaging" in entry:
+                    print(f" -> Messaging detected for page: {entry.get('id')}")
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid JSON payload")
 
