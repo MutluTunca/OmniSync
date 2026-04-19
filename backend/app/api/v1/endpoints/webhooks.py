@@ -1,6 +1,8 @@
+import hmac
+import hashlib
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request, Header
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 
@@ -11,6 +13,22 @@ from app.workers.celery_app import celery_app
 
 
 router = APIRouter()
+
+
+def verify_signature(payload: bytes, signature: str) -> bool:
+    if not signature:
+        return False
+    # Signature comes as 'sha256=...'
+    if signature.startswith("sha256="):
+        signature = signature[7:]
+    
+    expected_signature = hmac.new(
+        key=settings.meta_app_secret.encode("utf-8"),
+        msg=payload,
+        digestmod=hashlib.sha256
+    ).hexdigest()
+    
+    return hmac.compare_digest(expected_signature, signature)
 
 
 @router.get("/meta")
@@ -25,8 +43,21 @@ def verify_webhook(
 
 
 @router.post("/meta")
-async def receive_webhook(request: Request) -> dict[str, str]:
-    payload = await request.json()
+async def receive_webhook(
+    request: Request,
+    x_hub_signature_256: str = Header(None, alias="X-Hub-Signature-256")
+) -> dict[str, str]:
+    body = await request.body()
+    
+    # Verify signature if app_secret is set (allow skipping in dev if secret missing, but ideally not)
+    if settings.meta_app_secret:
+        if not verify_signature(body, x_hub_signature_256):
+            raise HTTPException(status_code=403, detail="Invalid signature")
+    
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
 
     db: Session = SessionLocal()
     try:

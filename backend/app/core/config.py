@@ -25,9 +25,9 @@ class Settings(BaseSettings):
     meta_oauth_redirect_uri: str = "https://emlak.omnisync.life/api/v1/instagram/oauth/callback"
 
     openai_api_key: str = ""
-    openai_model_intent: str = "gpt-4.1-mini"
-    openai_model_reply: str = "gpt-4.1-mini"
-    openai_model_extraction: str = "gpt-4.1-mini"
+    openai_model_intent: str = "gpt-4o-mini"
+    openai_model_reply: str = "gpt-4o-mini"
+    openai_model_extraction: str = "gpt-4o-mini"
 
     gemini_api_key: str = ""
     gemini_model: str = "gemini-1.5-flash"

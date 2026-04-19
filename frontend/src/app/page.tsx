@@ -57,7 +57,21 @@ type WebhookHealth = {
   oldest_pending_age_sec: number | null;
 };
 
-const API_BASE = "";
+type Company = {
+  id: string;
+  name: string;
+  logo_url?: string;
+  ai_custom_instructions?: string;
+  ai_model_tier?: string;
+  daily_reply_limit: number;
+};
+
+type TrendData = {
+  date: string;
+  count: number;
+};
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
 const TOKEN_STORAGE_KEY = "omnisync_access_token";
 
 function tokenLabel(value: string): string {
@@ -77,70 +91,67 @@ export default function HomePage() {
   const [celeryMon, setCeleryMon] = useState<CeleryHealth | null>(null);
   const [webhookMon, setWebhookMon] = useState<WebhookHealth | null>(null);
   const [aiInfo, setAiInfo] = useState<{ provider: string; model: string } | null>(null);
-  const [trends, setTrends] = useState<any[]>([]);
-  const [company, setCompany] = useState<any>(null);
-  const [allCompanies, setAllCompanies] = useState<any[]>([]);
+  const [trends, setTrends] = useState<TrendData[]>([]);
+  const [company, setCompany] = useState<Company | null>(null);
+  const [allCompanies, setAllCompanies] = useState<Company[]>([]);
   const [userRole, setUserRole] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const loadData = async () => {
     const token = window.localStorage.getItem(TOKEN_STORAGE_KEY);
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const selectedCompanyId = window.localStorage.getItem("omnisync_selected_company_id");
+    const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+    if (selectedCompanyId) {
+      headers["X-Company-ID"] = selectedCompanyId;
+    }
 
-    const loadData = async () => {
-      const token = window.localStorage.getItem(TOKEN_STORAGE_KEY);
-      const selectedCompanyId = window.localStorage.getItem("omnisync_selected_company_id");
-      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-      if (selectedCompanyId) {
-        headers["X-Company-ID"] = selectedCompanyId;
-      }
+    try {
+      const [hRes, tRes, cRes, wRes, analyticsRes, companyRes] = await Promise.all([
+        fetch(`${API_BASE}/api/v1/healthz`, { cache: "no-store", headers }),
+        fetch(`${API_BASE}/api/v1/instagram/token-health`, { cache: "no-store", headers }),
+        fetch(`${API_BASE}/api/v1/monitoring/celery`, { cache: "no-store", headers }),
+        fetch(`${API_BASE}/api/v1/monitoring/webhooks`, { cache: "no-store", headers }),
+        fetch(`${API_BASE}/api/v1/analytics/trends`, { cache: "no-store", headers }),
+        fetch(`${API_BASE}/api/v1/company/me`, { cache: "no-store", headers })
+      ]);
 
-      try {
-        const [hRes, tRes, cRes, wRes, analyticsRes, companyRes] = await Promise.all([
-          fetch(`${API_BASE}/api/v1/healthz`, { cache: "no-store", headers }),
-          fetch(`${API_BASE}/api/v1/instagram/token-health`, { cache: "no-store", headers }),
-          fetch(`${API_BASE}/api/v1/monitoring/celery`, { cache: "no-store", headers }),
-          fetch(`${API_BASE}/api/v1/monitoring/webhooks`, { cache: "no-store", headers }),
-          fetch(`${API_BASE}/api/v1/analytics/trends`, { cache: "no-store", headers }),
-          fetch(`${API_BASE}/api/v1/company/me`, { cache: "no-store", headers })
-        ]);
-
-        if (hRes.ok) {
-          const hData = await hRes.json();
-          setHealth(hData.status ?? "online");
-          if (hData.ai_provider) {
-            setAiInfo({ provider: hData.ai_provider, model: hData.ai_model });
-          }
-        } else {
-          setHealth("offline");
+      if (hRes.ok) {
+        const hData = await hRes.json();
+        setHealth(hData.status ?? "online");
+        if (hData.ai_provider) {
+          setAiInfo({ provider: hData.ai_provider, model: hData.ai_model });
         }
-
-        if (tRes.ok) setTokenHealth(await tRes.json());
-        if (cRes.ok) setCeleryMon(await cRes.json());
-        if (wRes.ok) setWebhookMon(await wRes.json());
-        if (analyticsRes.ok) setTrends(await analyticsRes.json());
-        if (companyRes.ok) {
-          const cData = await companyRes.json();
-          setCompany(cData);
-        }
-
-        // If user is owner, list all companies
-        const userStr = token ? JSON.parse(atob(token.split('.')[1])) : null;
-        if (userStr) {
-          setUserRole(userStr.role);
-          if (userStr.role === 'owner') {
-             const listRes = await fetch(`${API_BASE}/api/v1/company/list`, { headers });
-             if (listRes.ok) setAllCompanies(await listRes.json());
-          }
-        }
-      } catch (err) {
-        console.error("Dashboard data load failed", err);
+      } else {
         setHealth("offline");
-      } finally {
-        setLoading(false);
       }
-    };
 
+      if (tRes.ok) setTokenHealth(await tRes.json());
+      if (cRes.ok) setCeleryMon(await cRes.json());
+      if (wRes.ok) setWebhookMon(await wRes.json());
+      if (analyticsRes.ok) setTrends(await analyticsRes.json());
+      if (companyRes.ok) {
+        const cData = await companyRes.json();
+        setCompany(cData);
+      }
+
+      // If user is owner, list all companies
+      const userStr = token ? JSON.parse(atob(token.split('.')[1])) : null;
+      if (userStr) {
+        setUserRole(userStr.role);
+        if (userStr.role === 'owner') {
+           const listRes = await fetch(`${API_BASE}/api/v1/company/list`, { headers });
+           if (listRes.ok) setAllCompanies(await listRes.json());
+        }
+      }
+    } catch (err) {
+      console.error("Dashboard data load failed", err);
+      setHealth("offline");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     void loadData();
   }, []);
 
@@ -186,7 +197,7 @@ export default function HomePage() {
                       value={company?.id || ""}
                       onChange={(e) => {
                         window.localStorage.setItem("omnisync_selected_company_id", e.target.value);
-                        window.location.reload();
+                        void loadData(); 
                       }}
                     >
                       <option value="" disabled>Şirket Seçin</option>

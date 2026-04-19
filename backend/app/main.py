@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,7 +9,19 @@ from app.core.config import settings
 from app.db.bootstrap import bootstrap_owner
 
 
-app = FastAPI(title=settings.app_name, version="0.1.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup logic
+    bootstrap_owner()
+    yield
+    # Shutdown logic (if any)
+
+
+app = FastAPI(
+    title=settings.app_name, 
+    version="0.1.0",
+    lifespan=lifespan
+)
 
 # Create uploads directory if not exists
 if not os.path.exists("uploads"):
@@ -25,8 +38,7 @@ app.add_middleware(
         "https://emlak.omnisync.life", 
         "http://emlak.omnisync.life",
         "http://localhost:3000", 
-        "http://127.0.0.1:3000", 
-        "*"
+        "http://127.0.0.1:3000"
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -34,8 +46,3 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix="/api/v1")
-
-
-@app.on_event("startup")
-def on_startup() -> None:
-    bootstrap_owner()
