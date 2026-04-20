@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./styles.css";
+import SidebarWrapper from "../components/SidebarWrapper";
 
 export const metadata: Metadata = {
   title: "OmniSync Emlak",
@@ -9,7 +10,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="tr">
-      <body>{children}</body>
+      <body>
+        <SidebarWrapper>{children}</SidebarWrapper>
+      </body>
     </html>
   );
 }

@@ -7,7 +7,7 @@ from uuid import UUID
 from app.db.session import SessionLocal
 from app.models.conversation import Conversation
 from app.models.message import Message
-from app.api.v1.endpoints.auth import get_current_user
+from app.api.v1.dependencies import get_current_user
 from app.models.user import User
 
 router = APIRouter()

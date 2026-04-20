@@ -721,16 +721,30 @@ def process_messaging_event(event_id: str, messaging_event: dict) -> dict[str, s
         ).first()
         
         if not conv:
+            # Fetch profile for new conversations
+            participant_username = None
+            try:
+                from app.core.security import decrypt_token
+                resolved_token = decrypt_token(account.access_token_encrypted)
+                profile = MetaGraphClient().fetch_user_profile(str(sender_id), resolved_token)
+                participant_username = profile.get("username")
+            except Exception as e:
+                import logging
+                logging.warning(f"Failed to fetch profile for user {sender_id}: {e}")
+
             conv = Conversation(
                 company_id=account.company_id,
                 account_id=account.id,
                 ig_sid=str(sender_id),
-                status="active"
+                participant_username=participant_username,
+                status="active",
+                unread_count=0
             )
             db.add(conv)
             db.flush()
 
-        # Handle attachments (Vision Support)
+        # Increment unread count
+        conv.unread_count += 1
         media_url = None
         media_type = None
         attachments = message_data.get("attachments", [])
@@ -839,7 +853,7 @@ def generate_dm_reply_task(message_id: str, intent: str) -> dict[str, str]:
             out_msg = Message(
                 conversation_id=conv.id,
                 ig_mid=res.get("message_id", f"out_{uuid.uuid4()}"),
-                sender_id=msg.sender_id,
+                sender_id=account.ig_user_id,
                 recipient_id=msg.sender_id,
                 direction="outbound",
                 message_text=reply_text,

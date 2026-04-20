@@ -27,6 +27,7 @@ class Conversation(Base):
     last_message_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     last_message_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     
+    unread_count: Mapped[int] = mapped_column(nullable=False, default=0)
     status: Mapped[str] = mapped_column(Text, nullable=False, default="active") # active, archived
     
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))

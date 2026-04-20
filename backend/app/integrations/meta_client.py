@@ -113,3 +113,20 @@ class MetaGraphClient:
         except httpx.HTTPStatusError as e:
             raise Exception(f"Meta Graph API Messaging Error: {response.text}") from e
         return response.json()
+
+    def fetch_user_profile(self, user_id: str, access_token: str) -> dict:
+        """Fetches the Instagram user profile (username, name)."""
+        response = httpx.get(
+            f"{self.base_url}/{user_id}",
+            params={
+                "fields": "username,name,profile_pic",
+                "access_token": access_token
+            },
+            timeout=20,
+        )
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as e:
+            # Fallback for when profile fetching is restricted
+            return {"id": user_id, "username": None, "name": "Instagram User"}
+        return response.json()
