@@ -37,7 +37,7 @@ type Conversation = {
   unread_count: number;
 };
 
-const API_BASE = "";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
 const TOKEN_STORAGE_KEY = "omnisync_access_token";
 
 export default function ConversationsPage() {
